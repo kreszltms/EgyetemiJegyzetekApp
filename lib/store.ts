@@ -39,7 +39,7 @@ interface AppState {
   // ---- Tárgyak --------------------------------------------------------------
   addSubject: (
     data: Pick<Subject, "semesterId" | "nev" | "kod" | "szin" | "ikon"> &
-      Partial<Pick<Subject, "oktato" | "hianyzas" | "pontozas">>
+      Partial<Pick<Subject, "oktato" | "hianyzas" | "pontozas" | "kredit">>
   ) => string;
   updateSubject: (id: string, patch: Partial<Omit<Subject, "id">>) => void;
   deleteSubject: (id: string) => void;
@@ -152,6 +152,7 @@ export const useAppStore = create<AppState>()(
           oktato: data.oktato ?? { nev: "", email: "", fogadoora: "" },
           hianyzas: data.hianyzas ?? { maxHianyzas: 3, jelenlegiHianyzas: 0 },
           pontozas: data.pontozas ?? DEFAULT_PONTOZAS,
+          kredit: data.kredit,
           kovetelmenyek: [],
           createdAt: now,
           updatedAt: now,

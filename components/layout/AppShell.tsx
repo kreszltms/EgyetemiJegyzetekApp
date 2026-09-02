@@ -9,6 +9,7 @@ import { SubjectDashboard } from "@/components/subjects/SubjectDashboard";
 import { NoteEditor } from "@/components/notes/NoteEditor";
 import { GlobalNotes } from "@/components/notes/GlobalNotes";
 import { CalendarView } from "@/components/calendar/CalendarView";
+import { KreditIndexView } from "@/components/kreditindex/KreditIndexView";
 import { AuthScreen, FirebaseNotConfiguredScreen } from "@/components/auth/AuthScreen";
 import { Button } from "@/components/ui/button";
 import { useAuthStatus } from "@/lib/auth";
@@ -21,6 +22,7 @@ export type Nezet =
   | { tipus: "targy"; subjectId: string }
   | { tipus: "osszes-jegyzet" }
   | { tipus: "naptar" }
+  | { tipus: "kreditindex" }
   | { tipus: "jegyzet-szerkesztes"; subjectId: string; note?: Note };
 
 export function AppShell() {
@@ -121,6 +123,8 @@ export function AppShell() {
           )}
 
           {nezet.tipus === "naptar" && <CalendarView />}
+
+          {nezet.tipus === "kreditindex" && <KreditIndexView onNavigate={setNezet} />}
 
           {nezet.tipus === "jegyzet-szerkesztes" && (
             <NoteEditor

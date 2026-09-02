@@ -100,6 +100,16 @@ export function summarizePontozas(
   };
 }
 
+/** Jegyenkénti szín-osztályok (badge szegély/szöveg) — a Pontozás kártyán és
+ * a Kreditindex nézeten is ugyanaz a jegy→szín leképezés kell. */
+export const GRADE_COLOR_CLASSES: Record<number, string> = {
+  1: "text-destructive border-destructive/40",
+  2: "text-amber-600 border-amber-500/40 dark:text-amber-400",
+  3: "text-yellow-600 border-yellow-500/40 dark:text-yellow-400",
+  4: "text-sky-600 border-sky-500/40 dark:text-sky-400",
+  5: "text-emerald-600 border-emerald-500/40 dark:text-emerald-400",
+};
+
 /** Magyar jegyragozás táblázata — a sima "-es" végződés a 3-as és az 5-ös
  * esetén nyelvtanilag hibás lenne ("3-es", "5-es"), és az irányhatározós
  * "-hoz/-hez/-höz" alak is jegyenként eltér (pl. "a 3-ashoz", "az 5-öshöz"). */

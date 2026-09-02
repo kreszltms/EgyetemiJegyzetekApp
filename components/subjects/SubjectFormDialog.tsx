@@ -55,6 +55,9 @@ export function SubjectFormDialog({
   const [maxHianyzas, setMaxHianyzas] = useState(
     String(subject?.hianyzas.maxHianyzas ?? 3)
   );
+  const [kredit, setKredit] = useState(
+    subject?.kredit !== undefined ? String(subject.kredit) : ""
+  );
 
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {
@@ -65,6 +68,7 @@ export function SubjectFormDialog({
       setSzin(subject?.szin ?? SZIN_PALETTA[0]);
       setIkon(subject?.ikon ?? SUBJECT_ICON_NAMES[0]);
       setMaxHianyzas(String(subject?.hianyzas.maxHianyzas ?? 3));
+      setKredit(subject?.kredit !== undefined ? String(subject.kredit) : "");
     }
   }
 
@@ -72,6 +76,11 @@ export function SubjectFormDialog({
     if (!nev.trim()) return;
     const parsedMax = Number.parseInt(maxHianyzas, 10);
     const maxHianyzasValue = Number.isFinite(parsedMax) && parsedMax > 0 ? parsedMax : 3;
+    const parsedKredit = Number(kredit.trim().replace(",", "."));
+    const kreditValue =
+      kredit.trim() !== "" && Number.isFinite(parsedKredit) && parsedKredit >= 0
+        ? parsedKredit
+        : undefined;
 
     if (subject) {
       updateSubject(subject.id, {
@@ -80,6 +89,7 @@ export function SubjectFormDialog({
         szin,
         ikon,
         hianyzas: { ...subject.hianyzas, maxHianyzas: maxHianyzasValue },
+        kredit: kreditValue,
       });
       toast.success("Tárgy frissítve");
       onSaved?.(subject.id);
@@ -91,6 +101,7 @@ export function SubjectFormDialog({
         szin,
         ikon,
         hianyzas: { maxHianyzas: maxHianyzasValue, jelenlegiHianyzas: 0 },
+        kredit: kreditValue,
       });
       toast.success("Tárgy létrehozva");
       onSaved?.(id);
@@ -126,18 +137,37 @@ export function SubjectFormDialog({
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="subject-max-hianyzas">Maximális hiányzás (óra)</Label>
-            <Input
-              id="subject-max-hianyzas"
-              type="number"
-              min={1}
-              inputMode="numeric"
-              placeholder="pl. 3"
-              value={maxHianyzas}
-              onChange={(e) => setMaxHianyzas(e.target.value)}
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="subject-max-hianyzas">Maximális hiányzás (óra)</Label>
+              <Input
+                id="subject-max-hianyzas"
+                type="number"
+                min={1}
+                inputMode="numeric"
+                placeholder="pl. 3"
+                value={maxHianyzas}
+                onChange={(e) => setMaxHianyzas(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="subject-kredit">Kredit (opcionális)</Label>
+              <Input
+                id="subject-kredit"
+                type="number"
+                min={0}
+                step="0.5"
+                inputMode="decimal"
+                placeholder="pl. 5"
+                value={kredit}
+                onChange={(e) => setKredit(e.target.value)}
+              />
+            </div>
           </div>
+          <p className="-mt-2 text-xs text-muted-foreground">
+            A kredit a Kreditindex fülön a súlyozott átlag számításához kell —
+            enélkül a tárgy nem számít bele.
+          </p>
 
           <div className="space-y-1.5">
             <Label>Szín</Label>

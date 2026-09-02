@@ -8,17 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { PontozasDialog } from "@/components/subjects/PontozasDialog";
-import { formatGrade, formatGradeToSuffix, getPontozas, summarizePontozas } from "@/lib/pontozas";
+import {
+  formatGrade,
+  formatGradeToSuffix,
+  getPontozas,
+  GRADE_COLOR_CLASSES,
+  summarizePontozas,
+} from "@/lib/pontozas";
 import { calcPercentage, cn } from "@/lib/utils";
 import type { Subject } from "@/types";
-
-const GRADE_COLOR: Record<number, string> = {
-  1: "text-destructive border-destructive/40",
-  2: "text-amber-600 border-amber-500/40 dark:text-amber-400",
-  3: "text-yellow-600 border-yellow-500/40 dark:text-yellow-400",
-  4: "text-sky-600 border-sky-500/40 dark:text-sky-400",
-  5: "text-emerald-600 border-emerald-500/40 dark:text-emerald-400",
-};
 
 export function PontozasCard({ subject }: { subject: Subject }) {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -28,7 +26,7 @@ export function PontozasCard({ subject }: { subject: Subject }) {
     [subject.kovetelmenyek, subject.pontozas]
   );
 
-  const gradeClass = GRADE_COLOR[summary.currentGrade] ?? GRADE_COLOR[1];
+  const gradeClass = GRADE_COLOR_CLASSES[summary.currentGrade] ?? GRADE_COLOR_CLASSES[1];
   const sortedHatarok = [...pontozas.hatarok].sort((a, b) => a.jegy - b.jegy);
 
   return (

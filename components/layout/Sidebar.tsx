@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
+  Award,
   CalendarDays,
   Cloud,
   Download,
@@ -157,6 +158,18 @@ export function Sidebar({ nezet, onNavigate }: SidebarProps) {
         >
           <CalendarDays className="h-4 w-4" />
           Naptár
+        </button>
+        <button
+          onClick={() => onNavigate({ tipus: "kreditindex" })}
+          className={cn(
+            "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+            nezet.tipus === "kreditindex"
+              ? "bg-muted font-medium text-foreground"
+              : "text-muted-foreground hover:bg-muted"
+          )}
+        >
+          <Award className="h-4 w-4" />
+          Kreditindex
         </button>
       </div>
 

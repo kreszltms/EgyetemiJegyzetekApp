@@ -110,6 +110,12 @@ export interface Subject {
    * mintával olvasandó, sosem feltételezve, hogy biztosan jelen van.
    */
   pontozas?: PontozasConfig;
+  /**
+   * A tárgy kreditértéke a kreditindex-számításhoz. Opcionális — régebbi
+   * tárgyaknál hiányozhat, ilyenkor `subject.kredit ?? 0`-ként olvasandó,
+   * és a kreditindex-számítás kihagyja (nem osztunk 0-val súlyozva).
+   */
+  kredit?: number;
   createdAt: string;
   updatedAt: string;
 }

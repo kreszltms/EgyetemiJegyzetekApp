@@ -1,5 +1,5 @@
 // ============================================================================
-// EGYETEMI JEGYZETEK — Firebase inicializálás
+// UNINOTES — Firebase inicializálás
 // A felhős szinkronizáció (bejelentkezés + Firestore) csak akkor működik, ha
 // a .env.local fájlban meg vannak adva a saját Firebase projekted kulcsai.
 // Enélkül az app "helyi módban" fut tovább — lásd README.md.

@@ -14,7 +14,7 @@ import { getFirebaseAuth, isFirebaseConfigured } from "@/lib/firebase";
 import { useAppStore } from "@/lib/store";
 
 // ============================================================================
-// EGYETEMI JEGYZETEK — Bejelentkezési állapot
+// UNINOTES — Bejelentkezési állapot
 // `useSyncExternalStore`-ral figyeljük a Firebase Auth állapotát — a snapshot
 // mindig ugyanazt az objektum-referenciát adja vissza, amíg ténylegesen nem
 // változik semmi, hogy elkerüljük a végtelen render-kört (lásd a Zustand

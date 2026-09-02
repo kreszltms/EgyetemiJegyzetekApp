@@ -9,7 +9,7 @@ import {
 import type { AppData, Subject } from "@/types";
 
 // ============================================================================
-// EGYETEMI JEGYZETEK — Napi email-emlékeztető ütemezett feladat (Vercel Cron)
+// UNINOTES — Napi email-emlékeztető ütemezett feladat (Vercel Cron)
 //
 // A vercel.json "crons" bejegyzése hívja meg ezt naponta egyszer. Vercel a
 // hívásnál automatikusan `Authorization: Bearer <CRON_SECRET>` fejlécet küld,

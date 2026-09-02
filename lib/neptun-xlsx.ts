@@ -3,7 +3,7 @@ import * as XLSX from "xlsx";
 import type { ScheduleEvent, ScheduleEventType } from "@/types";
 
 // ============================================================================
-// EGYETEMI JEGYZETEK — Neptun "Tanóra" xlsx export beolvasása
+// UNINOTES — Neptun "Tanóra" xlsx export beolvasása
 //
 // A Neptun órarend-export felépítése (a ténylegesen tesztelt minta alapján):
 //   1. sor: egy "Tanóra" című sor (nem mindig van jelen)

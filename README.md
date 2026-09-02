@@ -1,4 +1,4 @@
-# Egyetemi Jegyzetek
+# UniNotes
 
 Modern, letisztult jegyzetelő webalkalmazás egyetemi hallgatóknak. Az
 adatmodell és a teljes UI kliensoldali (nincs SQL adatbázis, nincs saját
@@ -154,7 +154,7 @@ lépések végigvezetnek rajta. Kb. 10 perc.
 1. Nyisd meg a [Firebase Console](https://console.firebase.google.com)-t,
    és jelentkezz be a Google-fiókoddal.
 2. „Add project” / „Projekt hozzáadása” → adj neki egy nevet (pl.
-   `egyetemi-jegyzetek`) → a Google Analytics ajánlatot nyugodtan
+   `uninotes`) → a Google Analytics ajánlatot nyugodtan
    kihagyhatod („Not right now”) → „Create project”.
 3. Ez az ingyenes **Spark** csomagban történik — egy személyes
    jegyzetalkalmazás adatforgalma jóval a Spark ingyenes kerete alatt marad.
@@ -185,15 +185,15 @@ lépések végigvezetnek rajta. Kb. 10 perc.
 
 1. A projekt főoldalán (⚙️ **Project settings**) görgess le a „Your apps”
    részhez → kattints a `</>` (Web) ikonra.
-2. Adj neki egy becenevet (pl. `egyetemi-jegyzetek-web`) → **Register app**
+2. Adj neki egy becenevet (pl. `uninotes-web`) → **Register app**
    → Firebase Hosting-ot **nem** kell bepipálnod.
 3. Megjelenik egy `firebaseConfig` objektum kb. így:
    ```js
    const firebaseConfig = {
      apiKey: "AIza...",
-     authDomain: "egyetemi-jegyzetek-xxxxx.firebaseapp.com",
-     projectId: "egyetemi-jegyzetek-xxxxx",
-     storageBucket: "egyetemi-jegyzetek-xxxxx.appspot.com",
+     authDomain: "uninotes-xxxxx.firebaseapp.com",
+     projectId: "uninotes-xxxxx",
+     storageBucket: "uninotes-xxxxx.appspot.com",
      messagingSenderId: "123456789012",
      appId: "1:123456789012:web:abcdef1234567890",
    };
@@ -543,14 +543,14 @@ szolgáltatása) erre a legegyszerűbb.
    `.env.local`-ban.
 5. **Fontos, gyakran kihagyott lépés:** a Firebase Console-ban menj az
    **Authentication → Settings → Authorized domains** oldalra, és add hozzá
-   a Vercel által adott domaint (pl. `egyetemi-jegyzetek.vercel.app`) —
+   a Vercel által adott domaint (pl. `uninotes.vercel.app`) —
    enélkül a bejelentkezés `auth/unauthorized-domain` hibával elutasítja a
    publikus URL-ről érkező kéréseket.
 6. Végleges, éles feltöltés:
    ```bash
    vercel --prod
    ```
-7. A kapott URL-t (pl. `https://egyetemi-jegyzetek.vercel.app`) bármelyik
+7. A kapott URL-t (pl. `https://uninotes.vercel.app`) bármelyik
    eszközöd böngészőjében megnyithatod, bejelentkezhetsz, és onnantól a
    jegyzeteid mindenhol szinkronban lesznek.
 
@@ -665,7 +665,7 @@ napi feladat többször lefut vagy egy nap kimarad.
 ## Projektstruktúra
 
 ```
-egyetemi-jegyzetek-app/
+uninotes-app/
 ├── app/
 │   ├── layout.tsx                    # Gyökér layout, ThemeProvider, Toaster
 │   ├── page.tsx                      # Csak <AppShell /> renderelése
@@ -736,7 +736,7 @@ Minden típus a `types/index.ts`-ben van definiálva.
 
 A `lib/store.ts` egy Zustand store-t exportál (`useAppStore`), amit a
 `persist` middleware automatikusan szinkronban tart a `localStorage`
-`egyetemi-jegyzetek-storage` kulcsával — minden módosítás azonnal
+`uninotes-storage` kulcsával — minden módosítás azonnal
 perzisztálódik.
 
 ```ts

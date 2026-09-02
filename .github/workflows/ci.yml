@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Lint, típusellenőrzés, tesztek, build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repó kicsekkolása
+        uses: actions/checkout@v4
+
+      - name: Node.js beállítása
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Függőségek telepítése
+        run: npm ci
+
+      - name: Lint (eslint)
+        run: npm run lint
+
+      - name: Típusellenőrzés (tsc --noEmit)
+        run: npm run typecheck
+
+      - name: Automatizált tesztek (vitest)
+        run: npm test
+
+      - name: Production build
+        # A Firebase inicializáció "lazy" (lib/firebase.ts) — csak akkor fut
+        # le, amikor a kliens ténylegesen bejelentkezést/Firestore-t kér,
+        # nem a build/SSR alatt — ezért a NEXT_PUBLIC_FIREBASE_* env
+        # változók hiánya nem hiúsítja meg a buildet.
+        run: npm run build

@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 // ============================================================================
-// EGYETEMI JEGYZETEK — Web App Manifest (PWA)
+// UNINOTES — Web App Manifest (PWA)
 // A Next.js ezt automatikusan `/manifest.webmanifest` alatt szolgálja ki, és
 // a <head>-be is beszúrja a <link rel="manifest"> taget — nincs szükség
 // kézi public/manifest.json fájlra vagy link tagre.
@@ -9,8 +9,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Egyetemi Jegyzetek",
-    short_name: "Jegyzetek",
+    name: "UniNotes",
+    short_name: "UniNotes",
     description:
       "Lokális, böngészőben tárolt jegyzetelő és félév-szervező alkalmazás egyetemistáknak.",
     start_url: "/",

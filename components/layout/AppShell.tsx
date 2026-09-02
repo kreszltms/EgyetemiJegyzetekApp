@@ -119,7 +119,7 @@ export function AppShell() {
           </Button>
           <div className="flex items-center gap-1.5">
             <GraduationCap className="h-4 w-4" />
-            <span className="text-sm font-semibold">Egyetemi Jegyzetek</span>
+            <span className="text-sm font-semibold">UniNotes</span>
           </div>
         </div>
 

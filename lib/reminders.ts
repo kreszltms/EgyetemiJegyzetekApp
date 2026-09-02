@@ -4,7 +4,7 @@ import type { CalendarItem } from "@/lib/calendar-helpers";
 import { todayDateKey, tomorrowDateKey } from "@/lib/calendar-helpers";
 
 // ============================================================================
-// EGYETEMI JEGYZETEK — Emlékeztetők (böngésző Notification API)
+// UNINOTES — Emlékeztetők (böngésző Notification API)
 // Mivel ez egy 100%-ban kliensoldali, backend nélküli app, nincs push
 // szerver — az emlékeztető csak akkor tud megjelenni, ha az app tényleg meg
 // van nyitva (vagy fókuszba kerül) a böngészőben / telepített PWA-ként.
@@ -15,6 +15,10 @@ import { todayDateKey, tomorrowDateKey } from "@/lib/calendar-helpers";
 // nyilvántartva, hogy ma melyikre már küldtünk).
 // ============================================================================
 
+// FONTOS: ezek a kulcsok is szándékosan maradtak a régi néven — lásd a
+// magyarázatot a lib/store.ts STORAGE_KEY-nél. A felhasználó eddigi
+// emlékeztető-beállítása (be/ki + a "ma már küldtem erre" napló) így nem
+// veszik el az UniNotes átnevezés után sem.
 const ENABLED_KEY = "egyetemi-jegyzetek-emlekeztetok-enabled";
 const NOTIFIED_KEY = "egyetemi-jegyzetek-emlekeztetok-kikuldve";
 

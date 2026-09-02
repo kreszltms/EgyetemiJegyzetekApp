@@ -2,7 +2,7 @@ import { generateId } from "@/lib/utils";
 import type { NoteAttachment } from "@/types";
 
 // ============================================================================
-// EGYETEMI JEGYZETEK — Jegyzet-mellékletek (kép csatolása)
+// UNINOTES — Jegyzet-mellékletek (kép csatolása)
 //
 // Csak KÉP mellékletet támogatunk (nem tetszőleges fájlt): mivel az egész
 // alkalmazásállapot egyetlen Firestore dokumentumban tárolódik (lásd

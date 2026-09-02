@@ -11,7 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { useAppStore } from "@/lib/store";
 
 // ============================================================================
-// EGYETEMI JEGYZETEK — Diplomához szükséges kredit-tervező
+// UNINOTES — Diplomához szükséges kredit-tervező
 // A felhasználó megadja, hány kredit kell összesen az okleveléhez, ez a
 // kártya pedig ehhez viszonyítja a ténylegesen MEGSZERZETT (legalább 2-es
 // jegyű) kreditet, és a félévenkénti átlagos tempó alapján durván megbecsüli,

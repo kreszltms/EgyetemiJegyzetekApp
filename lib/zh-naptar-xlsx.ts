@@ -1,7 +1,7 @@
 import * as XLSX from "xlsx";
 
 // ============================================================================
-// EGYETEMI JEGYZETEK — Egyetemi ZH-naptár (intézményi xlsx) beolvasása
+// UNINOTES — Egyetemi ZH-naptár (intézményi xlsx) beolvasása
 //
 // Ez a fájl NEM a hallgató saját Neptun-exportja, hanem az egyetem által
 // közzétett, MINDEN tárgyra vonatkozó ZH-naptár (több száz sor). A

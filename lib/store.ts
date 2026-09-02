@@ -20,12 +20,19 @@ import { generateId } from "@/lib/utils";
 import type { ParsedScheduleEvent } from "@/lib/neptun-xlsx";
 
 // ============================================================================
-// EGYETEMI JEGYZETEK — Zustand store
+// UNINOTES — Zustand store
 // Egyetlen forrás az igazságra: minden adat itt él, és a `persist`
 // middleware automatikusan menti localStorage-ba minden változáskor.
 // Nincs backend hívás, nincs SQL — 100% kliensoldali állapotkezelés.
 // ============================================================================
 
+// FONTOS: ez a kulcs SZÁNDÉKOSAN maradt a régi "egyetemi-jegyzetek-storage"
+// néven az app UniNotes-ra átnevezése után is — ha átneveznénk, minden
+// meglévő felhasználó localStorage-ban tárolt adata "eltűnne" (az app egy
+// üres, új kulcs alól indulna), mivel a Zustand `persist` middleware ez
+// alapján a kulcs alapján tölti be a mentett állapotot. A felhasználó felé
+// megjelenő név (UniNotes) és a belső tárolási azonosító szándékosan
+// független egymástól.
 const STORAGE_KEY = "egyetemi-jegyzetek-storage";
 
 /**
@@ -585,7 +592,7 @@ export const useAppStore = create<AppState>()(
 // Ezeket a komponensek hívják, a böngésző File API-ját használva.
 // ============================================================================
 
-/** Letölti az aktuális adatokat "egyetemi-jegyzetek-mentes-<datum>.json" néven */
+/** Letölti az aktuális adatokat "uninotes-mentes-<datum>.json" néven */
 export function downloadJsonBackup() {
   const data = useAppStore.getState().exportData();
   const blob = new Blob([JSON.stringify(data, null, 2)], {
@@ -595,7 +602,7 @@ export function downloadJsonBackup() {
   const a = document.createElement("a");
   const datePart = new Date().toISOString().slice(0, 10);
   a.href = url;
-  a.download = `egyetemi-jegyzetek-mentes-${datePart}.json`;
+  a.download = `uninotes-mentes-${datePart}.json`;
   document.body.appendChild(a);
   a.click();
   a.remove();

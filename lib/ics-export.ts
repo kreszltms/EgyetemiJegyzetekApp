@@ -1,7 +1,7 @@
 import type { CalendarItem } from "@/lib/calendar-helpers";
 
 // ============================================================================
-// EGYETEMI JEGYZETEK — .ics naptár export
+// UNINOTES — .ics naptár export
 // A buildCalendarItems() már egységesített listáját (órarend + nyitott,
 // határidős követelmények) alakítja RFC5545 (iCalendar) szöveggé, hogy egy
 // kattintással beimportálható legyen Google/Apple/Outlook naptárba.
@@ -65,13 +65,13 @@ export function buildIcsCalendar(items: CalendarItem[]): string {
   const lines: string[] = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Egyetemi Jegyzetek//HU",
+    "PRODID:-//UniNotes//HU",
     "CALSCALE:GREGORIAN",
   ];
 
   for (const item of items) {
     lines.push("BEGIN:VEVENT");
-    lines.push(`UID:${item.id}@egyetemi-jegyzetek-app`);
+    lines.push(`UID:${item.id}@uninotes-app`);
     lines.push(`DTSTAMP:${icsUtcStamp(now)}`);
 
     if (item.kind === "hatarido") {
@@ -106,7 +106,7 @@ export function buildIcsCalendar(items: CalendarItem[]): string {
   return lines.map(foldLine).join("\r\n") + "\r\n";
 }
 
-/** Letölti az .ics fájlt "egyetemi-jegyzetek-naptar-<dátum>.ics" néven. */
+/** Letölti az .ics fájlt "uninotes-naptar-<dátum>.ics" néven. */
 export function downloadIcsCalendar(items: CalendarItem[]) {
   const ics = buildIcsCalendar(items);
   const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
@@ -114,7 +114,7 @@ export function downloadIcsCalendar(items: CalendarItem[]) {
   const a = document.createElement("a");
   const datePart = new Date().toISOString().slice(0, 10);
   a.href = url;
-  a.download = `egyetemi-jegyzetek-naptar-${datePart}.ics`;
+  a.download = `uninotes-naptar-${datePart}.ics`;
   document.body.appendChild(a);
   a.click();
   a.remove();

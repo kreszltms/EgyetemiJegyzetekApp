@@ -1,7 +1,7 @@
 import type { ParsedScheduleEvent } from "@/lib/neptun-xlsx";
 
 // ============================================================================
-// EGYETEMI JEGYZETEK — .ics naptár import
+// UNINOTES — .ics naptár import
 // A lib/ics-export.ts buildIcsCalendar()-jának visszafelé iránya: egy
 // külső .ics fájlt (pl. egyetemi/hallgatói naptárból) olvas be, és a benne
 // lévő VEVENT-eket ScheduleEvent-té alakítja, hogy a Naptár nézetben és az

@@ -8,7 +8,7 @@ import { useAppStore } from "@/lib/store";
 import type { AppData } from "@/types";
 
 // ============================================================================
-// EGYETEMI JEGYZETEK — Felhős szinkronizáció (Firestore)
+// UNINOTES — Felhős szinkronizáció (Firestore)
 //
 // Egyetlen Firestore dokumentumban (`userData/{uid}`) tároljuk a teljes
 // AppData JSON-t — ugyanazt a formátumot, amit a "Biztonsági mentés" gomb is

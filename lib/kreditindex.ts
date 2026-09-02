@@ -2,7 +2,7 @@ import { summarizePontozas } from "@/lib/pontozas";
 import type { Subject } from "@/types";
 
 // ============================================================================
-// EGYETEMI JEGYZETEK — Kreditindex (kredit-súlyozott átlag) segédfüggvények
+// UNINOTES — Kreditindex (kredit-súlyozott átlag) segédfüggvények
 // A "jegy" minden tárgynál a Pontozás kártyán megadott pontok alapján
 // BECSÜLT aktuális érdemjegy (lásd lib/pontozas.ts summarizePontozas) —
 // nincs külön "lezárt/hivatalos jegy" mező, tehát ez mindig egy élő,

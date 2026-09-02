@@ -2,7 +2,7 @@ import { NOTE_CATEGORY_LABELS, REQUIREMENT_TYPE_LABELS } from "@/types";
 import type { RequirementType, ScheduleEvent, Subject } from "@/types";
 
 // ============================================================================
-// EGYETEMI JEGYZETEK — Naptár segédfüggvények
+// UNINOTES — Naptár segédfüggvények
 // Egységes "CalendarItem" formára hozza az importált órarendi eseményeket
 // (Neptun) és a tárgyakhoz felvett, még nyitott ZH/vizsga/beadandó
 // határidőket, hogy a havi rács és a lista nézet ugyanazt a formát

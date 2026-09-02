@@ -69,7 +69,7 @@ export function AuthScreen() {
             <GraduationCap className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold">Egyetemi Jegyzetek</h1>
+            <h1 className="text-lg font-semibold">UniNotes</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Jelentkezz be, hogy az adataid minden eszközödön elérhetők legyenek.
             </p>

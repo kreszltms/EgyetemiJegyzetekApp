@@ -4,7 +4,7 @@ import type { KreditIndexResult } from "@/lib/kreditindex";
 import type { Semester } from "@/types";
 
 // ============================================================================
-// EGYETEMI JEGYZETEK — Félév-összefoglaló nyomtatás / PDF export
+// UNINOTES — Félév-összefoglaló nyomtatás / PDF export
 //
 // Nincs PDF-generáló függőség (jsPDF stb.) — ehelyett egy önálló, letisztult
 // HTML dokumentumot nyitunk egy új ablakban, és a böngésző natív nyomtatási
@@ -104,7 +104,7 @@ export function buildSemesterSummaryHtml(
 </head>
 <body>
   <h1>Félév-összefoglaló — ${escapeHtml(semester.nev)}</h1>
-  <p class="subtitle">Generálva: ${escapeHtml(generatedAt)} · Egyetemi Jegyzetek</p>
+  <p class="subtitle">Generálva: ${escapeHtml(generatedAt)} · UniNotes</p>
 
   <div class="stats">
     <div class="stat">
@@ -136,7 +136,7 @@ export function buildSemesterSummaryHtml(
     </tbody>
   </table>
 
-  <footer>Egyetemi Jegyzetek — automatikusan generált összefoglaló, nem hivatalos leckekönyvi kivonat.</footer>
+  <footer>UniNotes — automatikusan generált összefoglaló, nem hivatalos leckekönyvi kivonat.</footer>
 </body>
 </html>`;
 }

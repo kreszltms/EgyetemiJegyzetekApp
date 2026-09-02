@@ -161,7 +161,7 @@ export function Sidebar({ nezet, onNavigate, onOpenCommandPalette }: SidebarProp
           onClick={() => onNavigate({ tipus: "otthon" })}
           className="text-sm font-semibold hover:opacity-80"
         >
-          Egyetemi Jegyzetek
+          UniNotes
         </button>
       </div>
 

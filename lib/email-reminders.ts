@@ -1,7 +1,7 @@
 import { REQUIREMENT_TYPE_LABELS, type Requirement, type Subject } from "@/types";
 
 // ============================================================================
-// EGYETEMI JEGYZETEK — Email-emlékeztető logika (szerver oldalon fut, de
+// UNINOTES — Email-emlékeztető logika (szerver oldalon fut, de
 // tiszta függvényekből áll, hogy szükség esetén külön is tesztelhető legyen).
 // Használja: app/api/cron/email-reminders/route.ts
 // ============================================================================
@@ -102,14 +102,14 @@ export function buildReminderEmailHtml(items: DueReminderItem[]): string {
       <h2 style="color:#111827;margin-bottom:4px;">Közelgő határidők</h2>
       <p style="color:#4b5563;font-size:14px;">
         Ezekre a zárthelyikre/vizsgákra még nincs jelölve teljesítve az
-        Egyetemi Jegyzetek appban:
+        UniNotes appban:
       </p>
       <table style="width:100%;border-collapse:collapse;margin-top:8px;">
         ${rows}
       </table>
       <p style="color:#9ca3af;font-size:12px;margin-top:24px;">
         Ezt az emailt azért kaptad, mert bekapcsoltad az email-emlékeztetőket
-        az Egyetemi Jegyzetek alkalmazásban. Az oldalsávban bármikor
+        az UniNotes alkalmazásban. Az oldalsávban bármikor
         kikapcsolhatod.
       </p>
     </div>`;
@@ -120,5 +120,5 @@ export function buildReminderEmailSubject(items: DueReminderItem[]): string {
   if (items.length === 1) {
     return `Közelgő határidő: ${items[0].requirement.nev}`;
   }
-  return `${items.length} közelgő határidő az Egyetemi Jegyzetekben`;
+  return `${items.length} közelgő határidő az UniNotesben`;
 }

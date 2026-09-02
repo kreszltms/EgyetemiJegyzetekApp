@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================================
-// EGYETEMI JEGYZETEK — Jegytrend grafikon
+// UNINOTES — Jegytrend grafikon
 // Egyszerű, egyetlen sorozatos (single-series) vonaldiagram: hogyan alakult
 // a kredit-súlyozott féléves átlag időben. Egy sorozat → nincs szükség
 // jelmagyarázatra (a cím/alcím már megnevezi, mit ábrázolunk); a pontok

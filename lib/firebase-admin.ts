@@ -3,7 +3,7 @@ import { getAuth, type Auth } from "firebase-admin/auth";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 
 // ============================================================================
-// EGYETEMI JEGYZETEK — Firebase Admin (SZERVER OLDALI, csak Route Handlerben)
+// UNINOTES — Firebase Admin (SZERVER OLDALI, csak Route Handlerben)
 //
 // SOHA ne importáld ezt egy "use client" fájlból vagy kliens komponensből —
 // a szolgáltatásfiók (service account) privát kulcsát tartalmazza, aminek a

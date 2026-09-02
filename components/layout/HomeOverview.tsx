@@ -86,7 +86,7 @@ export function HomeOverview({ onNavigate }: { onNavigate: (n: Nezet) => void })
     <div className="mx-auto max-w-4xl space-y-5 p-6 sm:p-8">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">
-          {aktivFelev ? aktivFelev.nev : "Üdv az Egyetemi Jegyzeteknél"}
+          {aktivFelev ? aktivFelev.nev : "Üdv a UniNotes-ban"}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Minden adat helyben, a böngésződben tárolódik.

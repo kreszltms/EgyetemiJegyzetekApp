@@ -1,5 +1,5 @@
 // ============================================================================
-// EGYETEMI JEGYZETEK — Típusdefiníciók
+// UNINOTES — Típusdefiníciók
 // 100% kliensoldali adatmodell. Nincs backend, nincs SQL adatbázis.
 // Minden adat a böngészőben (localStorage / IndexedDB) tárolódik.
 // ============================================================================

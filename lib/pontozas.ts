@@ -2,7 +2,7 @@ import { DEFAULT_PONTOZAS } from "@/types";
 import type { PontHatar, PontozasConfig, Requirement } from "@/types";
 
 // ============================================================================
-// EGYETEMI JEGYZETEK — Pontozás segédfüggvények
+// UNINOTES — Pontozás segédfüggvények
 // A tárgyankénti (esetenként eltérő) jegyhatárok alapján számolja ki, hol
 // tart a hallgató, és mennyi pont kell még a következő jegyhez — a
 // hátralévő (még nem osztályozott) tételek maximális pontszáma alapján azt

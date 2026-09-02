@@ -7,7 +7,7 @@ import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Egyetemi Jegyzetek",
+  title: "UniNotes",
   description:
     "Lokális, böngészőben tárolt jegyzetelő és félév-szervező alkalmazás egyetemistáknak.",
   // PWA: telepítéskor (Android/asztali) ez adja az ikont; iOS-en a
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: "Jegyzetek",
+    title: "UniNotes",
     statusBarStyle: "default",
   },
 };

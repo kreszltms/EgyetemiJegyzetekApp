@@ -1,5 +1,5 @@
 // ============================================================================
-// EGYETEMI JEGYZETEK — Jegyzet-sablonok
+// UNINOTES — Jegyzet-sablonok
 // Előre megírt Markdown-vázak, amiket egy még üres jegyzethez lehet
 // választani, hogy ne üres lappal kelljen indulni.
 // ============================================================================

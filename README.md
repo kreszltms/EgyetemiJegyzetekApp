@@ -89,65 +89,6 @@ egy saját, ingyenes Firebase projektet kell létrehoznod — ezt neked kell
 megtenned (fiókot senki más nem hozhat létre helyetted), de az alábbi
 lépések végigvezetnek rajta. Kb. 10 perc.
 
-### 1. Firebase projekt létrehozása
-
-1. Nyisd meg a [Firebase Console](https://console.firebase.google.com)-t,
-   és jelentkezz be a Google-fiókoddal.
-2. „Add project” / „Projekt hozzáadása” → adj neki egy nevet (pl.
-   `egyetemi-jegyzetek`) → a Google Analytics ajánlatot nyugodtan
-   kihagyhatod („Not right now”) → „Create project”.
-3. Ez az ingyenes **Spark** csomagban történik — egy személyes
-   jegyzetalkalmazás adatforgalma jóval a Spark ingyenes kerete alatt marad.
-
-### 2. Bejelentkezés (Authentication) engedélyezése
-
-1. A bal oldali menüben: **Build → Authentication → Get started**.
-2. A „Sign-in method” fülön válaszd az **Email/Password** szolgáltatót →
-   kapcsold be az első kapcsolót (Email/Password) → **Save**.
-
-### 3. Adatbázis (Firestore) létrehozása
-
-1. A bal oldali menüben: **Build → Firestore Database → Create database**.
-2. Válassz egy hozzád közeli régiót (pl. `eur3 (europe-west)`) — ezt utólag
-   már nem lehet megváltoztatni.
-3. Indulhatsz „Production mode”-ban is, mert a projekt saját, szigorú
-   szabályokat hoz (lásd 4. lépés).
-
-### 4. Biztonsági szabályok feltöltése
-
-1. A Firestore Database oldalon a **Rules** fülön másold be a projekt
-   gyökerében található `firestore.rules` fájl teljes tartalmát a
-   szerkesztőbe, felülírva az alapértelmezett szöveget.
-2. **Publish**. Ez biztosítja, hogy mindenki csak a saját adatait
-   érheti el — más felhasználó jegyzeteit senki sem láthatja.
-
-### 5. Webalkalmazás regisztrálása és a kulcsok lekérése
-
-1. A projekt főoldalán (⚙️ **Project settings**) görgess le a „Your apps”
-   részhez → kattints a `</>` (Web) ikonra.
-2. Adj neki egy becenevet (pl. `egyetemi-jegyzetek-web`) → **Register app**
-   → Firebase Hosting-ot **nem** kell bepipálnod.
-3. Megjelenik egy `firebaseConfig` objektum kb. így:
-   ```js
-   const firebaseConfig = {
-     apiKey: "AIza...",
-     authDomain: "egyetemi-jegyzetek-xxxxx.firebaseapp.com",
-     projectId: "egyetemi-jegyzetek-xxxxx",
-     storageBucket: "egyetemi-jegyzetek-xxxxx.appspot.com",
-     messagingSenderId: "123456789012",
-     appId: "1:123456789012:web:abcdef1234567890",
-   };
-   ```
-4. A projekt gyökerében másold le a `.env.local.example` fájlt
-   `.env.local` néven, és töltsd ki a fenti értékekkel:
-   ```bash
-   cp .env.local.example .env.local
-   ```
-5. Indítsd újra a `npm run dev`-et. Ha minden kulcs helyes, a
-   bejelentkezés/regisztráció képernyő működni fog — hozz létre egy fiókot,
-   és próbáld ki két böngészőablakban (vagy két eszközön) ugyanazzal a
-   fiókkal, hogy lásd a valós idejű szinkronizációt.
-
 ### Fontos: meglévő helyi adatok
 
 Ha korábban már használtad az appot bejelentkezés nélkül (localStorage-ban

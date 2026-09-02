@@ -35,6 +35,13 @@ interface AppState {
   updateSemester: (id: string, patch: Partial<Omit<Semester, "id">>) => void;
   deleteSemester: (id: string) => void;
   setActiveSemester: (id: string) => void;
+  /**
+   * Be/kikapcsolja egy félév "archivalt" jelzőjét. Ha az épp aktív
+   * (kiválasztott) félévet archiváljuk, és van másik nem-archivált félév,
+   * automatikusan azt állítjuk be aktívnak — így a Kezdőlap/oldalsáv nem
+   * marad egy elrejtett félévre mutatva.
+   */
+  toggleSemesterArchived: (id: string) => void;
 
   // ---- Tárgyak --------------------------------------------------------------
   addSubject: (
@@ -108,6 +115,7 @@ export const useAppStore = create<AppState>()(
           kezdoDatum: data.kezdoDatum,
           zaroDatum: data.zaroDatum,
           aktiv: get().semesters.length === 0,
+          archivalt: false,
           createdAt: new Date().toISOString(),
         };
         set((s) => ({ semesters: [...s.semesters, semester] }));
@@ -137,6 +145,28 @@ export const useAppStore = create<AppState>()(
         set((s) => ({
           semesters: s.semesters.map((sem) => ({ ...sem, aktiv: sem.id === id })),
         })),
+
+      toggleSemesterArchived: (id) =>
+        set((s) => {
+          const semesters = s.semesters.map((sem) =>
+            sem.id === id ? { ...sem, archivalt: !sem.archivalt } : sem
+          );
+          const target = semesters.find((sem) => sem.id === id);
+          if (target?.archivalt && target.aktiv) {
+            const fallback = semesters.find(
+              (sem) => sem.id !== id && !sem.archivalt
+            );
+            if (fallback) {
+              return {
+                semesters: semesters.map((sem) => ({
+                  ...sem,
+                  aktiv: sem.id === fallback.id,
+                })),
+              };
+            }
+          }
+          return { semesters };
+        }),
 
       // ---- Tárgyak ------------------------------------------------------------
       addSubject: (data) => {

@@ -158,6 +158,15 @@ export interface Semester {
   kezdoDatum?: string;
   zaroDatum?: string;
   createdAt: string;
+  /**
+   * Lezárt/archivált félév — opcionális, régebbi féléveknél hiányozhat,
+   * ilyenkor `semester.archivalt ?? false`-ként olvasandó. Az archivált
+   * félévek a Kezdőlapon/oldalsávon és a Kreditindex nézeten alapból
+   * összecsukva jelennek meg, hogy a friss félévek maradjanak fókuszban —
+   * az adatuk (tárgyak, jegyek) továbbra is megmarad és beleszámít a
+   * kumulált kreditindexbe.
+   */
+  archivalt?: boolean;
 }
 
 // ----------------------------------------------------------------------------

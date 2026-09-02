@@ -3,8 +3,12 @@
 import { useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
+  Archive,
+  ArchiveRestore,
   Award,
   CalendarDays,
+  ChevronDown,
+  ChevronRight,
   Cloud,
   Download,
   GraduationCap,
@@ -44,7 +48,7 @@ import { downloadJsonBackup, importJsonBackup, useAppStore } from "@/lib/store";
 import { logout, useAuthStatus } from "@/lib/auth";
 import { useSyncStatus } from "@/lib/cloud-sync";
 import { cn } from "@/lib/utils";
-import type { Semester } from "@/types";
+import type { Semester, Subject } from "@/types";
 import type { Nezet } from "@/components/layout/AppShell";
 
 const SYNC_STATUS_META = {
@@ -64,6 +68,7 @@ export function Sidebar({ nezet, onNavigate }: SidebarProps) {
   const subjects = useAppStore((s) => s.subjects);
   const setActiveSemester = useAppStore((s) => s.setActiveSemester);
   const deleteSemester = useAppStore((s) => s.deleteSemester);
+  const toggleSemesterArchived = useAppStore((s) => s.toggleSemesterArchived);
 
   const { user } = useAuthStatus();
   const syncStatus = useSyncStatus();
@@ -86,6 +91,20 @@ export function Sidebar({ nezet, onNavigate }: SidebarProps) {
     () => subjects.filter((sub) => sub.semesterId === aktivFelev?.id),
     [subjects, aktivFelev]
   );
+
+  // A lezárt féléveket nem töröljük, csak alapból összecsukva, egy külön
+  // "Archívum" csoportban jelenítjük meg, hogy a friss félévek maradjanak
+  // fókuszban — a bennük lévő tárgyak/jegyek továbbra is beleszámítanak a
+  // Kreditindexbe.
+  const nyitottFelevek = useMemo(
+    () => semesters.filter((s) => !s.archivalt),
+    [semesters]
+  );
+  const archivaltFelevek = useMemo(
+    () => semesters.filter((s) => s.archivalt),
+    [semesters]
+  );
+  const [archivumNyitva, setArchivumNyitva] = useState(false);
 
   const [semesterDialogOpen, setSemesterDialogOpen] = useState(false);
   const [editingSemester, setEditingSemester] = useState<Semester | undefined>();
@@ -118,6 +137,13 @@ export function Sidebar({ nezet, onNavigate }: SidebarProps) {
     toast.success(`„${deleteTarget.nev}” és a hozzá tartozó tárgyak, jegyzetek törölve`);
     setDeleteTarget(undefined);
     onNavigate({ tipus: "otthon" });
+  }
+
+  function handleToggleArchive(sem: Semester) {
+    toggleSemesterArchived(sem.id);
+    toast.success(
+      sem.archivalt ? `„${sem.nev}” visszaállítva az archívumból` : `„${sem.nev}” archiválva`
+    );
   }
 
   return (
@@ -199,99 +225,75 @@ export function Sidebar({ nezet, onNavigate }: SidebarProps) {
           </p>
         )}
 
-        <div className="space-y-0.5">
-          {semesters.map((sem) => {
-            const isActive = sem.id === aktivFelev?.id;
-            return (
-              <div key={sem.id}>
-                <div
-                  className={cn(
-                    "group flex items-center gap-1 rounded-md pr-1 pl-2.5 text-sm",
-                    isActive && "bg-muted font-medium"
-                  )}
-                >
-                  <button
-                    onClick={() => setActiveSemester(sem.id)}
-                    className="flex-1 truncate py-1.5 text-left"
-                  >
-                    {sem.nev}
-                  </button>
-                  <DropdownMenu
-                    open={openSemesterMenuId === sem.id}
-                    onOpenChange={(v) => setOpenSemesterMenuId(v ? sem.id : null)}
-                  >
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        className="rounded p-1 text-muted-foreground opacity-0 hover:bg-background group-hover:opacity-100 focus:opacity-100"
-                        aria-label="Félév műveletek"
-                      >
-                        <MoreHorizontal className="h-3.5 w-3.5" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setOpenSemesterMenuId(null);
-                          setEditingSemester(sem);
-                          setSemesterDialogOpen(true);
-                        }}
-                      >
-                        <Pencil className="mr-2 h-3.5 w-3.5" />
-                        Szerkesztés
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        variant="destructive"
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setOpenSemesterMenuId(null);
-                          setDeleteTarget(sem);
-                        }}
-                      >
-                        <Trash2 className="mr-2 h-3.5 w-3.5" />
-                        Törlés
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
+        {semesters.length > 0 && nyitottFelevek.length === 0 && (
+          <p className="px-1 py-2 text-xs text-muted-foreground">
+            Nincs aktív féléved — minden félév archiválva van, lásd alul.
+          </p>
+        )}
 
-                {isActive && (
-                  <div className="mt-0.5 mb-1 ml-3 space-y-0.5 border-l pl-2.5">
-                    {aktivTargyak.map((sub) => {
-                      const subActive =
-                        nezet.tipus === "targy" && nezet.subjectId === sub.id;
-                      return (
-                        <button
-                          key={sub.id}
-                          onClick={() => onNavigate({ tipus: "targy", subjectId: sub.id })}
-                          className={cn(
-                            "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors",
-                            subActive
-                              ? "bg-muted font-medium text-foreground"
-                              : "text-muted-foreground hover:bg-muted"
-                          )}
-                        >
-                          <span
-                            className="h-2 w-2 shrink-0 rounded-full"
-                            style={{ backgroundColor: sub.szin }}
-                          />
-                          <span className="truncate">{sub.nev}</span>
-                        </button>
-                      );
-                    })}
-                    <button
-                      onClick={() => setSubjectDialogOpen(true)}
-                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      Új tárgy
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+        <div className="space-y-0.5">
+          {nyitottFelevek.map((sem) => (
+            <SemesterRow
+              key={sem.id}
+              sem={sem}
+              isActive={sem.id === aktivFelev?.id}
+              aktivTargyak={aktivTargyak}
+              nezet={nezet}
+              openSemesterMenuId={openSemesterMenuId}
+              setOpenSemesterMenuId={setOpenSemesterMenuId}
+              onSelect={() => setActiveSemester(sem.id)}
+              onNavigate={onNavigate}
+              onNewSubject={() => setSubjectDialogOpen(true)}
+              onEdit={() => {
+                setEditingSemester(sem);
+                setSemesterDialogOpen(true);
+              }}
+              onToggleArchive={() => handleToggleArchive(sem)}
+              onDelete={() => setDeleteTarget(sem)}
+            />
+          ))}
         </div>
+
+        {archivaltFelevek.length > 0 && (
+          <div className="mt-2">
+            <button
+              onClick={() => setArchivumNyitva((v) => !v)}
+              className="flex w-full items-center gap-1 rounded-md px-1 py-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase hover:text-foreground"
+            >
+              {archivumNyitva ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
+              Archívum ({archivaltFelevek.length})
+            </button>
+
+            {archivumNyitva && (
+              <div className="mt-0.5 space-y-0.5 opacity-70">
+                {archivaltFelevek.map((sem) => (
+                  <SemesterRow
+                    key={sem.id}
+                    sem={sem}
+                    isActive={sem.id === aktivFelev?.id}
+                    aktivTargyak={aktivTargyak}
+                    nezet={nezet}
+                    openSemesterMenuId={openSemesterMenuId}
+                    setOpenSemesterMenuId={setOpenSemesterMenuId}
+                    onSelect={() => setActiveSemester(sem.id)}
+                    onNavigate={onNavigate}
+                    onNewSubject={() => setSubjectDialogOpen(true)}
+                    onEdit={() => {
+                      setEditingSemester(sem);
+                      setSemesterDialogOpen(true);
+                    }}
+                    onToggleArchive={() => handleToggleArchive(sem)}
+                    onDelete={() => setDeleteTarget(sem)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between border-t px-3 py-2">
@@ -386,5 +388,142 @@ export function Sidebar({ nezet, onNavigate }: SidebarProps) {
         </AlertDialogContent>
       </AlertDialog>
     </aside>
+  );
+}
+
+// ============================================================================
+// Egy félév sora az oldalsávban — közös komponens a nyitott és az
+// archivált félévek listájához, hogy a két hely ne térhessen el egymástól.
+// ============================================================================
+interface SemesterRowProps {
+  sem: Semester;
+  isActive: boolean;
+  aktivTargyak: Subject[];
+  nezet: Nezet;
+  openSemesterMenuId: string | null;
+  setOpenSemesterMenuId: (id: string | null) => void;
+  onSelect: () => void;
+  onNavigate: (nezet: Nezet) => void;
+  onNewSubject: () => void;
+  onEdit: () => void;
+  onToggleArchive: () => void;
+  onDelete: () => void;
+}
+
+function SemesterRow({
+  sem,
+  isActive,
+  aktivTargyak,
+  nezet,
+  openSemesterMenuId,
+  setOpenSemesterMenuId,
+  onSelect,
+  onNavigate,
+  onNewSubject,
+  onEdit,
+  onToggleArchive,
+  onDelete,
+}: SemesterRowProps) {
+  return (
+    <div>
+      <div
+        className={cn(
+          "group flex items-center gap-1 rounded-md pr-1 pl-2.5 text-sm",
+          isActive && "bg-muted font-medium"
+        )}
+      >
+        <button onClick={onSelect} className="flex-1 truncate py-1.5 text-left">
+          {sem.nev}
+        </button>
+        <DropdownMenu
+          open={openSemesterMenuId === sem.id}
+          onOpenChange={(v) => setOpenSemesterMenuId(v ? sem.id : null)}
+        >
+          <DropdownMenuTrigger asChild>
+            <button
+              className="rounded p-1 text-muted-foreground opacity-0 hover:bg-background group-hover:opacity-100 focus:opacity-100"
+              aria-label="Félév műveletek"
+            >
+              <MoreHorizontal className="h-3.5 w-3.5" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault();
+                setOpenSemesterMenuId(null);
+                onEdit();
+              }}
+            >
+              <Pencil className="mr-2 h-3.5 w-3.5" />
+              Szerkesztés
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault();
+                setOpenSemesterMenuId(null);
+                onToggleArchive();
+              }}
+            >
+              {sem.archivalt ? (
+                <>
+                  <ArchiveRestore className="mr-2 h-3.5 w-3.5" />
+                  Visszaállítás
+                </>
+              ) : (
+                <>
+                  <Archive className="mr-2 h-3.5 w-3.5" />
+                  Archiválás
+                </>
+              )}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              variant="destructive"
+              onSelect={(e) => {
+                e.preventDefault();
+                setOpenSemesterMenuId(null);
+                onDelete();
+              }}
+            >
+              <Trash2 className="mr-2 h-3.5 w-3.5" />
+              Törlés
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {isActive && (
+        <div className="mt-0.5 mb-1 ml-3 space-y-0.5 border-l pl-2.5">
+          {aktivTargyak.map((sub) => {
+            const subActive = nezet.tipus === "targy" && nezet.subjectId === sub.id;
+            return (
+              <button
+                key={sub.id}
+                onClick={() => onNavigate({ tipus: "targy", subjectId: sub.id })}
+                className={cn(
+                  "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors",
+                  subActive
+                    ? "bg-muted font-medium text-foreground"
+                    : "text-muted-foreground hover:bg-muted"
+                )}
+              >
+                <span
+                  className="h-2 w-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: sub.szin }}
+                />
+                <span className="truncate">{sub.nev}</span>
+              </button>
+            );
+          })}
+          <button
+            onClick={onNewSubject}
+            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Új tárgy
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

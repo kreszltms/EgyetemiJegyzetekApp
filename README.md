@@ -85,6 +85,12 @@ mindkettő hiba és figyelmeztetés nélkül fut.
   megadott kredit és a Pontozásból becsült jegyek alapján kiszámolja a
   kredit-súlyozott átlagot, félévenként és összesítve is. Ld. lentebb a
   [Kreditindex](#kreditindex) szakaszt.
+- **Félévek archiválása** — egy lezárt félév a sidebar "..." menüjéből
+  archiválható, ezután alapból összecsukva, egy külön "Archívum" csoportban
+  jelenik meg (a sidebarban és a Kreditindex nézeten is), hogy a friss
+  félévek maradjanak fókuszban. Az archivált félév adata nem vész el —
+  bármikor visszaállítható, és a kreditindex-számításba is beleszámít. Ld.
+  lentebb a [Félévek archiválása](#félévek-archiválása) szakaszt.
 
 ## Felhős szinkronizáció beállítása (Firebase)
 
@@ -271,6 +277,26 @@ kredit-súlyozott átlagodat — félévenkénti bontásban és összesítve is:
 - A nézet tetején egy összesített, az összes félévedet figyelembe vevő
   kreditindex látható, alatta pedig félévenkénti bontásban ugyanez, hogy
   lásd, melyik félévben hogyan állsz.
+
+## Félévek archiválása
+
+Ahogy telnek a félévek, a sidebar és a Kreditindex nézet is egyre
+zsúfoltabbá válna, ha minden korábbi félév végig ki lenne listázva. Ezért
+egy lezárt félév **archiválható**:
+
+- A sidebarban a félév melletti **"…"** menüben válaszd az **"Archiválás"**
+  pontot (ugyanitt vissza is állítható az **"Visszaállítás"** menüponttal).
+- Az archivált félévek nem tűnnek el és nem törlődnek — csak egy külön,
+  alapból **összecsukott "Archívum"** csoportba kerülnek, a sidebar félév
+  listája alján. Rákattintva bármikor kinyitható, és a benne lévő tárgyaid
+  ugyanúgy elérhetők, mint korábban.
+- Ha épp az aktívan megnyitott félévet archiválod, az app automatikusan a
+  következő nem-archivált félévet állítja be aktívnak (ha van ilyen).
+- A **Kreditindex** nézeten ugyanez a logika érvényesül: az archivált
+  félévek részletes bontása alapból össze van csukva egy "Archivált
+  félévek" szakasz alatt, de az **Összesített kreditindexbe** továbbra is
+  beleszámítanak — archiválás csak a listázást, nem a számítást
+  befolyásolja.
 
 ## Élesítés (deploy) Vercelre — hogy tényleg bárhonnan elérd
 

@@ -15,5 +15,12 @@ service cloud.firestore {
     match /userData/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
+
+    // emailReminderState/{uid} — az email-emlékeztető ütemezett feladat
+    // (app/api/cron/email-reminders) belső nyilvántartása arról, mely
+    // határidőkre küldött már emailt. Szándékosan NINCS itt szabály rá,
+    // ezért a Firestore alapértelmezett "minden tiltva" viselkedése
+    // érvényesül kliens SDK-ból — csak a Firebase Admin SDK (szerver oldali
+    // szolgáltatásfiók) éri el, a kliens sosem.
   }
 }

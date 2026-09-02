@@ -44,6 +44,7 @@ import {
 
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { ReminderBell } from "@/components/layout/ReminderBell";
+import { EmailReminderButton } from "@/components/layout/EmailReminderButton";
 import { SemesterFormDialog } from "@/components/semesters/SemesterFormDialog";
 import { SubjectFormDialog } from "@/components/subjects/SubjectFormDialog";
 import { downloadJsonBackup, importJsonBackup, useAppStore } from "@/lib/store";
@@ -338,6 +339,7 @@ export function Sidebar({ nezet, onNavigate, onOpenCommandPalette }: SidebarProp
         <div className="flex items-center gap-0.5">
           <ThemeToggle />
           <ReminderBell />
+          <EmailReminderButton />
           <Button
             variant="ghost"
             size="icon"

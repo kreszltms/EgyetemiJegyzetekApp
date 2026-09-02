@@ -217,6 +217,32 @@ export interface ScheduleEvent {
 }
 
 // ----------------------------------------------------------------------------
+// Email-emlékeztetők (Vercel Cron + Resend háttérfolyamat küldi)
+// ----------------------------------------------------------------------------
+/**
+ * A felhasználó email-emlékeztető beállítása — ez maga a beállítás
+ * (kliensen szerkeszthető, a felhő-szinkronnal együtt utazik). A tényleges
+ * küldés egy szerver oldali ütemezett feladat dolga (lásd
+ * app/api/cron/email-reminders/route.ts), ami naponta egyszer lefut,
+ * beolvassa ezt a mezőt minden felhasználónál, és a közelgő ZH/vizsga
+ * határidőkről (Requirement, tipus "zh" vagy "vizsga") emailt küld a
+ * Firebase Auth fiókhoz tartozó címre — nem itt, kliensoldalon történik a
+ * küldés, hiszen böngésző nélkül, zárt laptop mellett is meg kell történnie.
+ */
+export interface EmailReminderSettings {
+  enabled: boolean;
+  /** Hány nappal a határidő előtt (és az alatt) kapjon emailt. */
+  napokElotte: number;
+}
+
+export const DEFAULT_EMAIL_REMINDER_NAPOK_ELOTTE = 3;
+
+export const DEFAULT_EMAIL_REMINDER_SETTINGS: EmailReminderSettings = {
+  enabled: false,
+  napokElotte: DEFAULT_EMAIL_REMINDER_NAPOK_ELOTTE,
+};
+
+// ----------------------------------------------------------------------------
 // Teljes alkalmazás-állapot / export-import séma
 // ----------------------------------------------------------------------------
 export interface AppData {
@@ -232,6 +258,10 @@ export interface AppData {
    * felhasználó be nem állítja.
    */
   celKredit?: number;
+  /** Email-emlékeztető beállítás — opcionális, régebbi exportoknál/felhő-
+   * dokumentumoknál hiányozhat, ilyenkor DEFAULT_EMAIL_REMINDER_SETTINGS-ként
+   * olvasandó. */
+  emailReminders?: EmailReminderSettings;
   /** Séma verzió a jövőbeli migrációkhoz */
   version: string;
   exportedAt?: string;

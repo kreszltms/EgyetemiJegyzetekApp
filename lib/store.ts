@@ -5,7 +5,9 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import {
   AppData,
   DATA_SCHEMA_VERSION,
+  DEFAULT_EMAIL_REMINDER_SETTINGS,
   DEFAULT_PONTOZAS,
+  EmailReminderSettings,
   Note,
   Requirement,
   ScheduleEvent,
@@ -31,9 +33,14 @@ interface AppState {
   scheduleEvents: ScheduleEvent[];
   /** Diplomához szükséges összes kredit — ld. types/index.ts AppData.celKredit. */
   celKredit?: number;
+  /** Email-emlékeztető beállítás — ld. types/index.ts AppData.emailReminders. */
+  emailReminders: EmailReminderSettings;
 
   // ---- Diplomához szükséges kredit ------------------------------------------
   setCelKredit: (value: number | undefined) => void;
+
+  // ---- Email-emlékeztetők ----------------------------------------------------
+  setEmailReminders: (settings: EmailReminderSettings) => void;
 
   // ---- Félévek ------------------------------------------------------------
   addSemester: (data: Pick<Semester, "nev" | "kezdoDatum" | "zaroDatum">) => string;
@@ -121,8 +128,11 @@ export const useAppStore = create<AppState>()(
       notes: [],
       scheduleEvents: [],
       celKredit: undefined,
+      emailReminders: DEFAULT_EMAIL_REMINDER_SETTINGS,
 
       setCelKredit: (value) => set({ celKredit: value }),
+
+      setEmailReminders: (settings) => set({ emailReminders: settings }),
 
       // ---- Félévek ----------------------------------------------------------
       addSemester: (data) => {
@@ -421,13 +431,14 @@ export const useAppStore = create<AppState>()(
 
       // ---- Import / Export ----------------------------------------------------
       exportData: () => {
-        const { semesters, subjects, notes, scheduleEvents, celKredit } = get();
+        const { semesters, subjects, notes, scheduleEvents, celKredit, emailReminders } = get();
         return {
           semesters,
           subjects,
           notes,
           scheduleEvents,
           celKredit,
+          emailReminders,
           version: DATA_SCHEMA_VERSION,
           exportedAt: new Date().toISOString(),
         };
@@ -459,6 +470,18 @@ export const useAppStore = create<AppState>()(
               : [],
             celKredit:
               typeof parsed.celKredit === "number" ? parsed.celKredit : undefined,
+            // Régebbi exportokban/felhő-dokumentumokban még nem szerepelt —
+            // ilyenkor a "kikapcsolva" alapértelmezést vesszük fel.
+            emailReminders:
+              parsed.emailReminders && typeof parsed.emailReminders.enabled === "boolean"
+                ? {
+                    enabled: parsed.emailReminders.enabled,
+                    napokElotte:
+                      typeof parsed.emailReminders.napokElotte === "number"
+                        ? parsed.emailReminders.napokElotte
+                        : DEFAULT_EMAIL_REMINDER_SETTINGS.napokElotte,
+                  }
+                : DEFAULT_EMAIL_REMINDER_SETTINGS,
           });
           return { success: true };
         } catch {
@@ -470,7 +493,14 @@ export const useAppStore = create<AppState>()(
       },
 
       resetAll: () =>
-        set({ semesters: [], subjects: [], notes: [], scheduleEvents: [], celKredit: undefined }),
+        set({
+          semesters: [],
+          subjects: [],
+          notes: [],
+          scheduleEvents: [],
+          celKredit: undefined,
+          emailReminders: DEFAULT_EMAIL_REMINDER_SETTINGS,
+        }),
     }),
     {
       name: STORAGE_KEY,

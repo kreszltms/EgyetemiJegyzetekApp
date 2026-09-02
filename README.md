@@ -131,6 +131,12 @@ mindkettő hiba és figyelmeztetés nélkül fut.
 - **.ics naptár-import** — a saját (pl. egyetemi) naptárad `.ics` fájlját is
   beimportálhatod a Naptár nézetbe, az export visszafelé irányaként. Ld.
   lentebb az [.ics naptár-import](#ics-naptár-import) szakaszt.
+- **Email-emlékeztetők** — a böngésző-emlékeztetőtől függetlenül, egy
+  szerver oldali napi ütemezett feladat emailt küld a közelgő, még nem
+  teljesített ZH/vizsga határidőkről — akkor is, ha az app nincs megnyitva.
+  Opcionális, külön beállítást igényel. Ld. lentebb az
+  [Email-emlékeztetők beállítása (Resend + Vercel Cron)](#email-emlékeztetők-beállítása-resend--vercel-cron)
+  szakaszt.
 
 ## Felhős szinkronizáció beállítása (Firebase)
 
@@ -520,6 +526,88 @@ szolgáltatása) erre a legegyszerűbb.
    eszközöd böngészőjében megnyithatod, bejelentkezhetsz, és onnantól a
    jegyzeteid mindenhol szinkronban lesznek.
 
+## Email-emlékeztetők beállítása (Resend + Vercel Cron)
+
+Az [Emlékeztetők közelgő határidőkre](#emlékeztetők-közelgő-határidőkre)
+szakaszban leírt harang-gomb **böngésző**-értesítést küld, tehát csak akkor
+jelez, ha az app tényleg nyitva van (vagy fókuszba kerül). Az
+**email-emlékeztető** ettől független, és egy szerver oldali, naponta
+egyszer lefutó ütemezett feladat küldi — akkor is megérkezik, ha a laptopod
+csukva van. Ehhez már túl kell lenned az [Élesítés (deploy)
+Vercelre](#élesítés-deploy-vercelre--hogy-tényleg-bárhonnan-elérd) lépésen,
+mert az ütemezés (Vercel Cron) csak az éles Vercel-deployon fut, `npm run
+dev` alatt nem.
+
+**Ez a rész teljesen opcionális** — nélküle minden más funkció (beleértve a
+böngésző-emlékeztetőt is) ugyanúgy működik.
+
+1. **Resend fiók + API kulcs.** Regisztrálj a [resend.com](https://resend.com)
+   oldalon (ingyenes csomag is elég), majd **API Keys** menüpontban hozz
+   létre egy kulcsot. Ezt írd be a Vercel projekt env-változói közé
+   `RESEND_API_KEY` néven.
+   - **Fontos korlát:** amíg nem igazolsz saját domaint a Resend-ben, csak a
+     saját Resend-fiókodhoz tartozó email címre tudsz vele küldeni (ez
+     teszteléshez pont elég). Éles, "bárhonnan bejövő" használathoz add
+     hozzá és igazold a saját domained a Resend **Domains** menüjében, és
+     onnantól a `RESEND_FROM_EMAIL` lehet pl. `emlekezteto@sajatdomain.hu`.
+     Domain nélkül a Resend saját tesztcíme (`onboarding@resend.dev`) is
+     használható `RESEND_FROM_EMAIL`-nek, de csak a saját fiókod címére
+     küld ki vele.
+2. **Firebase szolgáltatásfiók (service account).** A [Firebase
+   Console](https://console.firebase.google.com)-ban: **Project settings**
+   (fogaskerék ikon) → **Service accounts** fül → **Generate new private
+   key**. Ez letölt egy JSON fájlt — ebből három mezőt kell átmásolnod a
+   Vercel env-változói közé:
+   - `project_id` → `FIREBASE_ADMIN_PROJECT_ID`
+   - `client_email` → `FIREBASE_ADMIN_CLIENT_EMAIL`
+   - `private_key` → `FIREBASE_ADMIN_PRIVATE_KEY` (a teljes értéket, a
+     `-----BEGIN PRIVATE KEY-----`/`-----END...-----` sorokkal és a benne
+     lévő `\n`-ekkel együtt, ahogy a JSON-ban áll)
+
+   **Ezt a fájlt soha ne commitold a git repóba és ne oszd meg senkivel** —
+   teljes hozzáférést ad a Firestore adatbázisodhoz.
+3. **CRON_SECRET.** Találj ki egy tetszőleges hosszú, véletlenszerű stringet
+   (pl. egy jelszógenerátorral), és add hozzá a Vercel env-változókhoz
+   `CRON_SECRET` néven. A Vercel ezt automatikusan `Authorization: Bearer
+   <érték>` fejlécként küldi, amikor az ütemezett feladatot elindítja — ez
+   védi az endpointot attól, hogy bárki más kívülről meghívhassa.
+4. **Vercel Dashboard → Settings → Environment Variables** — mind az öt fenti
+   változót (`RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `FIREBASE_ADMIN_PROJECT_ID`,
+   `FIREBASE_ADMIN_CLIENT_EMAIL`, `FIREBASE_ADMIN_PRIVATE_KEY`,
+   `CRON_SECRET`) add hozzá, majd deployolj újra (`vercel --prod`), hogy
+   érvénybe lépjenek.
+5. A `vercel.json` fájl (már a repóban van) mondja meg a Vercel-nek, hogy
+   naponta 06:00 UTC-kor (nyáron kb. 8:00, télen kb. 7:00 magyar idő) hívja
+   meg a `/api/cron/email-reminders` endpointot — ezt a Vercel automatikusan
+   felismeri deploy-kor, nincs hozzá külön teendő. A Vercel **Hobby**
+   (ingyenes) csomag naponta egy futtatást enged ütemezett feladatonként,
+   ami pont elég ehhez.
+6. **Bekapcsolás az appban:** az oldalsáv alján, a harang gomb mellett lévő
+   boríték ikonra kattintva bekapcsolhatod az email-emlékeztetőt, és
+   beállíthatod, hány nappal a határidő előtt kapj emailt (alapértelmezés: 3
+   nap). A levelek a bejelentkezéshez használt email címre érkeznek, és csak
+   a még nem teljesítve jelölt **ZH/vizsga** típusú követelményekről szólnak
+   (beadandó/egyéb típusra nem küld).
+
+**Tesztelés:** az endpoint kézzel is meghívható, hogy ne kelljen egy teljes
+napot várni:
+
+```bash
+curl -H "Authorization: Bearer <a te CRON_SECRET-ed>" \
+  https://<a-te-domained>.vercel.app/api/cron/email-reminders
+```
+
+A válasz JSON-ban mutatja, hány felhasználónál van bekapcsolva az
+emlékeztető, és hány emailt küldött ki ténylegesen — ha `emailsSent: 0`, az
+azért lehet, mert épp senkinek sincs a beállított napon belüli, még
+teljesítetlen ZH/vizsga határideje, nem feltétlenül hiba.
+
+**Hogyan kerüli el a duplikált emaileket:** minden elküldött emlékeztetőt
+(követelmény-azonosító + határidő párosítva) egy külön, csak a szerver
+által elérhető Firestore kollekcióban (`emailReminderState`) jegyez fel a
+rendszer — ugyanarra a határidőre nem küld kétszer, még akkor sem, ha a
+napi feladat többször lefut vagy egy nap kimarad.
+
 ## Tech stack
 
 | Réteg | Választás |
@@ -553,7 +641,9 @@ egyetemi-jegyzetek-app/
 ├── app/
 │   ├── layout.tsx                    # Gyökér layout, ThemeProvider, Toaster
 │   ├── page.tsx                      # Csak <AppShell /> renderelése
-│   └── globals.css                   # Tailwind + shadcn CSS-változók (light/dark) + typography plugin
+│   ├── globals.css                   # Tailwind + shadcn CSS-változók (light/dark) + typography plugin
+│   └── api/cron/email-reminders/
+│       └── route.ts                  # Napi email-emlékeztető Route Handler (Vercel Cron hívja)
 ├── components/
 │   ├── ui/                           # shadcn/ui primitívek (button, card, tabs, dialog, alert-dialog, ...)
 │   ├── auth/
@@ -563,7 +653,8 @@ egyetemi-jegyzetek-app/
 │   │   ├── Sidebar.tsx               # Félévek/tárgyak fa nézet, téma váltó, export/import, sync jelző, kijelentkezés
 │   │   ├── HomeOverview.tsx          # Kezdőlap dashboard
 │   │   ├── CommandPalette.tsx        # Gyors keresés / parancspaletta (Ctrl+K)
-│   │   ├── ReminderBell.tsx          # Határidő-emlékeztető harang
+│   │   ├── ReminderBell.tsx          # Böngésző-emlékeztető harang
+│   │   ├── EmailReminderButton.tsx   # Email-emlékeztető be/ki + gyakoriság beállítás
 │   │   └── theme-toggle.tsx          # Sötét/világos mód gomb
 │   ├── semesters/
 │   │   └── SemesterFormDialog.tsx    # Félév létrehozás/szerkesztés
@@ -588,11 +679,15 @@ egyetemi-jegyzetek-app/
 │   ├── ics-export.ts                 # .ics naptár-export (RFC5545)
 │   ├── ics-import.ts                 # .ics naptár-import (RFC5545 parse)
 │   ├── semester-summary.ts           # Félév-összefoglaló nyomtatás / PDF export
+│   ├── reminders.ts                  # Böngésző-emlékeztető (Notification API)
+│   ├── email-reminders.ts            # Email-emlékeztető logika (esedékesség-számítás, HTML sablon)
+│   ├── firebase-admin.ts             # Firebase Admin SDK init — SZERVER OLDALI, csak a cron route-ból
 │   └── utils.ts                      # cn(), formatDateHu(), parseTags()...
 ├── types/
 │   └── index.ts                      # Semester, Subject, Note, Requirement
 ├── firestore.rules                   # Firestore biztonsági szabályok (csak saját uid alatt)
-├── .env.local.example                # Firebase kulcsok sablonja (másold .env.local néven)
+├── vercel.json                       # Vercel Cron ütemezés (napi email-emlékeztető)
+├── .env.local.example                # Firebase kulcsok + email-emlékeztető kulcsok sablonja
 └── components.json                   # shadcn/ui konfiguráció (referenciaként)
 ```
 

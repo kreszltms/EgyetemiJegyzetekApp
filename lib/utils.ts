@@ -42,10 +42,16 @@ export function todayIso(): string {
 export function parseTags(input: string): string[] {
   const matches = input.match(/#([^\s#,]+)/g) ?? [];
   const fromHash = matches.map((m) => m.slice(1).toLowerCase());
-  const fromCommaList = input
-    .split(",")
-    .map((s) => s.trim().replace(/^#/, "").toLowerCase())
-    .filter(Boolean);
+  // A vesszős lista csak akkor számít külön forrásnak, ha az input tényleg
+  // vesszőt tartalmaz — enélkül a szóközzel elválasztott "#tag1 #tag2"
+  // bevitel a teljes szöveget egyetlen (hibás, "#"-t is tartalmazó) tagként
+  // adná hozzá a fromHash mellé.
+  const fromCommaList = input.includes(",")
+    ? input
+        .split(",")
+        .map((s) => s.trim().replace(/^#/, "").toLowerCase())
+        .filter((s) => s && !s.includes(" ") && !s.includes("#"))
+    : [];
   return Array.from(new Set([...fromHash, ...fromCommaList])).filter(Boolean);
 }
 

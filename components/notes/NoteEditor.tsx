@@ -15,6 +15,8 @@ import {
   Tag as TagIcon,
   Eye,
   Pencil,
+  Columns2,
+  CalendarDays,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -32,7 +34,8 @@ import {
 import { MarkdownContent } from "@/components/notes/MarkdownContent";
 import { useAppStore } from "@/lib/store";
 import { NOTE_CATEGORY_LABELS, type Note, type NoteCategory } from "@/types";
-import { parseTags, todayIso } from "@/lib/utils";
+import { SUBJECT_ICONS } from "@/lib/subject-icons";
+import { cn, parseTags, todayIso } from "@/lib/utils";
 
 // ============================================================================
 // NoteEditor — jegyzetíró/-szerkesztő felület.
@@ -52,11 +55,15 @@ interface NoteEditorProps {
   onSaved?: (note: Note) => void;
 }
 
+type ViewMode = "szerkesztes" | "hasitott" | "elonezet";
+
 const CATEGORY_OPTIONS: NoteCategory[] = ["eloadas", "gyakorlat", "labor", "egyeb"];
 
 export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProps) {
   const addNote = useAppStore((s) => s.addNote);
   const updateNote = useAppStore((s) => s.updateNote);
+  const subject = useAppStore((s) => s.subjects.find((sub) => sub.id === subjectId));
+  const SubjectIcon = SUBJECT_ICONS[subject?.ikon ?? ""] ?? SUBJECT_ICONS.BookOpen;
 
   const [cim, setCim] = useState(note?.cim ?? "");
   const [tipus, setTipus] = useState<NoteCategory>(note?.tipus ?? "eloadas");
@@ -68,10 +75,15 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
     note ? new Date(note.updatedAt) : undefined
   );
 
-  const [previewMode, setPreviewMode] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("szerkesztes");
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const tags = useMemo(() => parseTags(tagInput), [tagInput]);
+
+  const wordCount = useMemo(() => {
+    const trimmed = tartalom.trim();
+    return trimmed ? trimmed.split(/\s+/).length : 0;
+  }, [tartalom]);
 
   const isDirty = useRef(false);
   useEffect(() => {
@@ -133,178 +145,299 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
     });
   }
 
+  // Egy címke eltávolítása a nyers tagInput szövegből (a "#cimke" tokent
+  // szedi ki, kis-nagybetűtől függetlenül), majd a felesleges szóközöket
+  // összevonja.
+  function removeTag(tag: string) {
+    setTagInput((prev) =>
+      prev
+        .replace(new RegExp(`#${tag}\\b`, "i"), "")
+        .replace(/\s+/g, " ")
+        .trim()
+    );
+  }
+
   // Csak adatok — az insertMarkdown() (ami a textareaRef.current-et olvassa)
   // szándékosan csak az onClick eseménykezelőben hívódik meg, sosem a
   // render-ág során, hogy a ref-olvasás mindig eseménykezelőn belül történjen.
-  const toolbarButtons: {
+  const toolbarGroups: {
     icon: ElementType;
     label: string;
     prefix: string;
     suffix: string;
     placeholder: string;
-  }[] = [
-    { icon: Bold, label: "Félkövér", prefix: "**", suffix: "**", placeholder: "félkövér szöveg" },
-    { icon: Italic, label: "Dőlt", prefix: "*", suffix: "*", placeholder: "dőlt szöveg" },
-    { icon: Heading2, label: "Alcím", prefix: "## ", suffix: "", placeholder: "Alcím" },
-    { icon: List, label: "Felsorolás", prefix: "- ", suffix: "", placeholder: "Listaelem" },
-    { icon: ListOrdered, label: "Számozott lista", prefix: "1. ", suffix: "", placeholder: "Listaelem" },
-    { icon: CheckSquare, label: "Feladatlista", prefix: "- [ ] ", suffix: "", placeholder: "Teendő" },
-    { icon: Quote, label: "Idézet", prefix: "> ", suffix: "", placeholder: "Idézet" },
-    { icon: Code, label: "Kód", prefix: "`", suffix: "`", placeholder: "kód" },
+  }[][] = [
+    [
+      { icon: Bold, label: "Félkövér", prefix: "**", suffix: "**", placeholder: "félkövér szöveg" },
+      { icon: Italic, label: "Dőlt", prefix: "*", suffix: "*", placeholder: "dőlt szöveg" },
+      { icon: Heading2, label: "Alcím", prefix: "## ", suffix: "", placeholder: "Alcím" },
+    ],
+    [
+      { icon: List, label: "Felsorolás", prefix: "- ", suffix: "", placeholder: "Listaelem" },
+      { icon: ListOrdered, label: "Számozott lista", prefix: "1. ", suffix: "", placeholder: "Listaelem" },
+      { icon: CheckSquare, label: "Feladatlista", prefix: "- [ ] ", suffix: "", placeholder: "Teendő" },
+    ],
+    [
+      { icon: Quote, label: "Idézet", prefix: "> ", suffix: "", placeholder: "Idézet" },
+      { icon: Code, label: "Kód", prefix: "`", suffix: "`", placeholder: "kód" },
+    ],
   ];
 
+  const editingDisabled = viewMode === "elonezet";
+  const showEditor = viewMode === "szerkesztes" || viewMode === "hasitott";
+  const showPreview = viewMode === "elonezet" || viewMode === "hasitott";
+
   return (
-    <div className="mx-auto flex h-full max-w-3xl flex-col gap-4 p-6">
+    <div className="mx-auto flex min-h-full max-w-4xl flex-col gap-3 p-6">
       {/* ---------------------------------------------------------------- */}
-      {/* Fejléc: cím, kategória, dátum                                     */}
+      {/* Kontextus-sáv: melyik tárgyhoz tartozik a jegyzet                  */}
       {/* ---------------------------------------------------------------- */}
-      <div className="flex items-start justify-between gap-4">
-        <Input
-          value={cim}
-          onChange={(e) => setCim(e.target.value)}
-          placeholder="Jegyzet címe…"
-          className="h-auto border-none px-0 text-2xl font-semibold shadow-none focus-visible:ring-0"
-        />
-        <Button variant="ghost" size="icon" onClick={onClose} aria-label="Bezárás">
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
+      {subject && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div
+            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-white"
+            style={{ backgroundColor: subject.szin }}
+          >
+            <SubjectIcon className="h-3 w-3" />
+          </div>
+          <span className="truncate">{subject.nev}</span>
+        </div>
+      )}
 
-      <div className="flex flex-wrap items-center gap-3">
-        <Select value={tipus} onValueChange={(v) => setTipus(v as NoteCategory)}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Típus" />
-          </SelectTrigger>
-          <SelectContent>
-            {CATEGORY_OPTIONS.map((opt) => (
-              <SelectItem key={opt} value={opt}>
-                {NOTE_CATEGORY_LABELS[opt]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Input
-          type="date"
-          value={datum}
-          onChange={(e) => setDatum(e.target.value)}
-          className="w-40"
-        />
-
-        <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-md border px-3">
-          <TagIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          <input
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            placeholder="#vizsgakérdés #definíció"
-            className="h-9 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+      <div className="flex min-h-0 flex-1 flex-col gap-4 rounded-xl border bg-card p-5 shadow-sm sm:p-6">
+        {/* -------------------------------------------------------------- */}
+        {/* Fejléc: cím, kategória, dátum                                   */}
+        {/* -------------------------------------------------------------- */}
+        <div className="flex items-start justify-between gap-4">
+          <Input
+            value={cim}
+            onChange={(e) => setCim(e.target.value)}
+            placeholder="Jegyzet címe…"
+            className="h-auto border-none px-0 text-2xl font-semibold shadow-none focus-visible:ring-0"
           />
+          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Bezárás">
+            <X className="h-4 w-4" />
+          </Button>
         </div>
-      </div>
 
-      {tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {tags.map((tag) => (
-            <span
-              key={tag}
-              className="rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground"
-            >
-              #{tag}
-            </span>
-          ))}
+        <div className="flex flex-wrap items-center gap-3">
+          <Select value={tipus} onValueChange={(v) => setTipus(v as NoteCategory)}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Típus" />
+            </SelectTrigger>
+            <SelectContent>
+              {CATEGORY_OPTIONS.map((opt) => (
+                <SelectItem key={opt} value={opt}>
+                  {NOTE_CATEGORY_LABELS[opt]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <div className="flex h-9 w-40 items-center gap-1.5 rounded-md border px-3">
+            <CalendarDays className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <input
+              type="date"
+              value={datum}
+              onChange={(e) => setDatum(e.target.value)}
+              className="h-full flex-1 bg-transparent text-sm outline-none [color-scheme:light] dark:[color-scheme:dark]"
+            />
+          </div>
+
+          <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-md border px-3">
+            <TagIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <input
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              placeholder="#vizsgakérdés #definíció"
+              className="h-9 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            />
+          </div>
         </div>
-      )}
 
-      {/* ---------------------------------------------------------------- */}
-      {/* Markdown eszköztár + előnézet-kapcsoló                              */}
-      {/* ---------------------------------------------------------------- */}
-      <div className="flex flex-wrap items-center justify-between gap-1 rounded-lg border bg-muted/30 p-1.5">
-        <div className="flex flex-wrap items-center gap-1">
-          {toolbarButtons.map(({ icon: Icon, label, prefix, suffix, placeholder }) => (
+        {tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {tags.map((tag) => (
+              <span
+                key={tag}
+                className="group flex items-center gap-1 rounded-full bg-muted py-0.5 pr-1 pl-2.5 text-xs text-muted-foreground"
+              >
+                #{tag}
+                <button
+                  type="button"
+                  onClick={() => removeTag(tag)}
+                  aria-label={`#${tag} címke eltávolítása`}
+                  className="rounded-full p-0.5 text-muted-foreground/70 hover:bg-background hover:text-foreground"
+                >
+                  <X className="h-2.5 w-2.5" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* -------------------------------------------------------------- */}
+        {/* Markdown eszköztár + nézetválasztó                                */}
+        {/* -------------------------------------------------------------- */}
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/30 p-1.5">
+          <div className="flex flex-wrap items-center gap-1">
+            {toolbarGroups.map((group, i) => (
+              <div key={i} className="flex items-center gap-1">
+                {i > 0 && <div className="mx-0.5 h-5 w-px bg-border" aria-hidden="true" />}
+                {group.map(({ icon: Icon, label, prefix, suffix, placeholder }) => (
+                  <Button
+                    key={label}
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    title={label}
+                    disabled={editingDisabled}
+                    onClick={() => insertMarkdown(prefix, suffix, placeholder)}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </Button>
+                ))}
+              </div>
+            ))}
+          </div>
+
+          {/* Háromállású nézetválasztó: szerkesztés / hasított / előnézet */}
+          <div className="flex items-center gap-0.5 rounded-md bg-background p-0.5">
             <Button
-              key={label}
               type="button"
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              title={label}
-              disabled={previewMode}
-              onClick={() => insertMarkdown(prefix, suffix, placeholder)}
+              variant={viewMode === "szerkesztes" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 gap-1.5 px-2 text-xs"
+              onClick={() => setViewMode("szerkesztes")}
+              title="Csak szerkesztés"
             >
-              <Icon className="h-4 w-4" />
-            </Button>
-          ))}
-        </div>
-        <Button
-          type="button"
-          variant={previewMode ? "secondary" : "ghost"}
-          size="sm"
-          className="h-8 gap-1.5 text-xs"
-          onClick={() => setPreviewMode((p) => !p)}
-        >
-          {previewMode ? (
-            <>
               <Pencil className="h-3.5 w-3.5" />
-              Szerkesztés
-            </>
-          ) : (
-            <>
+              <span className="hidden sm:inline">Szerkesztés</span>
+            </Button>
+            <Button
+              type="button"
+              variant={viewMode === "hasitott" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 gap-1.5 px-2 text-xs"
+              onClick={() => setViewMode("hasitott")}
+              title="Hasított nézet (szerkesztés + élő előnézet)"
+            >
+              <Columns2 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Hasított</span>
+            </Button>
+            <Button
+              type="button"
+              variant={viewMode === "elonezet" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 gap-1.5 px-2 text-xs"
+              onClick={() => setViewMode("elonezet")}
+              title="Csak előnézet"
+            >
               <Eye className="h-3.5 w-3.5" />
-              Előnézet
-            </>
-          )}
-        </Button>
-      </div>
+              <span className="hidden sm:inline">Előnézet</span>
+            </Button>
+          </div>
+        </div>
 
-      {/* ---------------------------------------------------------------- */}
-      {/* Tartalom szerkesztő / előnézet                                     */}
-      {/* ---------------------------------------------------------------- */}
-      {previewMode ? (
-        <div className="min-h-[320px] flex-1 rounded-md border px-4 py-3">
-          {tartalom.trim() ? (
-            <MarkdownContent content={tartalom} />
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Nincs még megjeleníthető tartalom.
-            </p>
+        {/* -------------------------------------------------------------- */}
+        {/* Tartalom szerkesztő / élő előnézet                                */}
+        {/* -------------------------------------------------------------- */}
+        <div
+          className={cn(
+            "flex min-h-0 flex-1 gap-4",
+            viewMode === "hasitott" ? "flex-col md:flex-row" : "flex-col"
+          )}
+        >
+          {showEditor && (
+            <div
+              className={cn(
+                "flex min-h-[240px] flex-1 flex-col",
+                viewMode === "hasitott" && "md:w-1/2"
+              )}
+            >
+              {viewMode === "hasitott" && (
+                <span className="mb-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                  Szerkesztés
+                </span>
+              )}
+              <Textarea
+                ref={textareaRef}
+                value={tartalom}
+                onChange={(e) => setTartalom(e.target.value)}
+                placeholder="Kezdd el írni a jegyzetet… (Markdown formázás támogatott)"
+                className={cn(
+                  "flex-1 resize-none text-[15px] leading-relaxed shadow-none focus-visible:ring-0",
+                  viewMode === "hasitott"
+                    ? "rounded-md border px-3 py-2.5"
+                    : "border-none px-0"
+                )}
+              />
+            </div>
+          )}
+
+          {showPreview && (
+            <div
+              className={cn(
+                "flex min-h-[240px] flex-1 flex-col",
+                viewMode === "hasitott" && "border-t pt-4 md:w-1/2 md:border-t-0 md:border-l md:pt-0 md:pl-4"
+              )}
+            >
+              {viewMode === "hasitott" && (
+                <span className="mb-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                  Élő előnézet
+                </span>
+              )}
+              <div className="flex-1 overflow-y-auto rounded-md border px-4 py-3">
+                {tartalom.trim() ? (
+                  <MarkdownContent content={tartalom} />
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Nincs még megjeleníthető tartalom.
+                  </p>
+                )}
+              </div>
+            </div>
           )}
         </div>
-      ) : (
-        <Textarea
-          ref={textareaRef}
-          value={tartalom}
-          onChange={(e) => setTartalom(e.target.value)}
-          placeholder="Kezdd el írni a jegyzetet… (Markdown formázás támogatott)"
-          className="min-h-[320px] flex-1 resize-none border-none px-0 text-[15px] leading-relaxed shadow-none focus-visible:ring-0"
-        />
-      )}
 
-      {/* ---------------------------------------------------------------- */}
-      {/* Lábléc: mentés státusz + gombok                                    */}
-      {/* ---------------------------------------------------------------- */}
-      <div className="flex items-center justify-between border-t pt-4">
-        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          {lastSavedAt ? (
-            <>
-              <Check className="h-3.5 w-3.5 text-emerald-500" />
-              Mentve{" "}
-              {lastSavedAt.toLocaleTimeString("hu-HU", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-              -kor
-            </>
-          ) : (
-            "Még nincs mentve"
-          )}
-        </span>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={onClose}>
-            Mégse
-          </Button>
-          <Button onClick={handleManualSave} disabled={!cim.trim()}>
-            Mentés
-          </Button>
+        {/* -------------------------------------------------------------- */}
+        {/* Lábléc: mentés státusz + gombok                                   */}
+        {/* -------------------------------------------------------------- */}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              {lastSavedAt ? (
+                <>
+                  <Check className="h-3.5 w-3.5 text-emerald-500" />
+                  Mentve{" "}
+                  {lastSavedAt.toLocaleTimeString("hu-HU", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                  -kor
+                </>
+              ) : (
+                "Még nincs mentve"
+              )}
+            </span>
+            {wordCount > 0 && (
+              <>
+                <span className="text-border">·</span>
+                <span>
+                  {wordCount} szó · {tartalom.length} karakter
+                </span>
+              </>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose}>
+              Mégse
+            </Button>
+            <Button onClick={handleManualSave} disabled={!cim.trim()}>
+              Mentés
+            </Button>
+          </div>
         </div>
       </div>
     </div>

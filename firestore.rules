@@ -1,0 +1,19 @@
+rules_version = '2';
+
+// ============================================================================
+// EGYETEMI JEGYZETEK — Firestore biztonsági szabályok
+// Minden felhasználó csak a SAJÁT dokumentumát olvashatja/írhatja, a saját
+// bejelentkezett Firebase Auth UID-je alatt. Senki más adatát nem érheti el.
+//
+// Feltöltés: Firebase Console → Firestore Database → Rules fül → illeszd be
+// ezt a tartalmat → Publish. (Vagy: `firebase deploy --only firestore:rules`,
+// ha a Firebase CLI-t használod.)
+// ============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /userData/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}

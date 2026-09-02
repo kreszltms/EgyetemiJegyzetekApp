@@ -30,6 +30,20 @@ export function formatDateHu(iso: string | undefined): string {
   }).format(d);
 }
 
+/** ISO dátum-idő → magyar formátum, pl. "2026. 08. 31. 14:05" */
+export function formatDateTimeHu(iso: string | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("hu-HU", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(d);
+}
+
 /** Mai dátum ISO (YYYY-MM-DD) formátumban, input[type=date]-hez */
 export function todayIso(): string {
   return new Date().toISOString().slice(0, 10);

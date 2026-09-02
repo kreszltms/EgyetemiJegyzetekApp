@@ -149,6 +149,25 @@ export interface NoteAttachment {
   meret: number;
 }
 
+/**
+ * Egy korábbi pillanatkép egy jegyzet cím+tartalom mezőjéről — a
+ * verziótörténet ("Előzmények") funkcióhoz. Szándékosan CSAK cím+tartalom,
+ * a mellékletek nem verziózottak, mert azok (tömörítve is) akár
+ * több száz KB-ot is jelenthetnek, és minden mentésnél újra eltárolva
+ * gyorsan szétfeszítenék a Firestore ~1 MB-os dokumentumkorlátját.
+ */
+export interface NoteVersion {
+  id: string;
+  /** ISO dátum-idő string — mikor készült ez a pillanatkép. */
+  mentveKor: string;
+  cim: string;
+  tartalom: string;
+}
+
+/** Jegyzetenként legfeljebb ennyi korábbi verziót tartunk meg — a
+ * legrégebbi törlődik, ha betelik (lásd lib/store.ts updateNote). */
+export const MAX_NOTE_VERSIONS = 15;
+
 export interface Note {
   id: string;
   subjectId: string;
@@ -166,6 +185,12 @@ export interface Note {
    * (Firestore nem fogadja el undefined mezőértékként), mindig `[]`.
    */
   mellekletek?: NoteAttachment[];
+  /**
+   * Korábbi cím+tartalom pillanatképek (legrégebbi elöl) — opcionális,
+   * régebbi jegyzeteknél hiányozhat, ilyenkor `note.verziok ?? []`-ként
+   * olvasandó. Lásd NoteVersion doc-komment a tervezési korlátokról.
+   */
+  verziok?: NoteVersion[];
   createdAt: string;
   updatedAt: string;
 }

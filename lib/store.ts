@@ -8,7 +8,9 @@ import {
   DEFAULT_EMAIL_REMINDER_SETTINGS,
   DEFAULT_PONTOZAS,
   EmailReminderSettings,
+  MAX_NOTE_VERSIONS,
   Note,
+  NoteVersion,
   Requirement,
   ScheduleEvent,
   Semester,
@@ -25,6 +27,30 @@ import type { ParsedScheduleEvent } from "@/lib/neptun-xlsx";
 // ============================================================================
 
 const STORAGE_KEY = "egyetemi-jegyzetek-storage";
+
+/**
+ * Egy jegyzet szerkesztése közben a NoteEditor 700ms-es debounce-szal
+ * automatikusan ment (lásd components/notes/NoteEditor.tsx) — enélkül a
+ * hűtési idő nélkül MINDEN automentés külön verziót hozna létre, és a
+ * "verziótörténet" gyakorlatilag egy gépelés közbeni undo-stack lenne, nem
+ * használható áttekintés a korábbi állapotokról. Ezért csak akkor veszünk
+ * fel új pillanatképet, ha az utolsó óta legalább ennyi idő eltelt (vagy
+ * még nincs egy sem).
+ */
+const NOTE_VERSION_COOLDOWN_MS = 5 * 60 * 1000;
+
+/** Egy jegyzet aktuális (mentés ELŐTTI) cím+tartalom állapotát pillanatképként
+ * hozzáfűzi a verziótörténethez, a MAX_NOTE_VERSIONS korlátra vágva. */
+function appendNoteVersion(note: Note): NoteVersion[] {
+  const existing = note.verziok ?? [];
+  const snapshot: NoteVersion = {
+    id: generateId(),
+    mentveKor: new Date().toISOString(),
+    cim: note.cim,
+    tartalom: note.tartalom,
+  };
+  return [...existing, snapshot].slice(-MAX_NOTE_VERSIONS);
+}
 
 interface AppState {
   semesters: Semester[];
@@ -88,6 +114,13 @@ interface AppState {
   ) => string;
   updateNote: (id: string, patch: Partial<Omit<Note, "id">>) => void;
   deleteNote: (id: string) => void;
+  /**
+   * Visszaállítja a jegyzet cím+tartalom mezőjét egy korábbi verzióra — a
+   * visszaállítás ELŐTTI állapotot is elmenti egy új pillanatképként
+   * (hűtési időtől függetlenül), hogy a visszaállítás se legyen
+   * visszafordíthatatlan.
+   */
+  restoreNoteVersion: (noteId: string, versionId: string) => void;
 
   // ---- Órarend (Neptun import) -----------------------------------------------
   /** Lecseréli a teljes órarendet az újonnan importált eseményekre, és a
@@ -361,13 +394,50 @@ export const useAppStore = create<AppState>()(
 
       updateNote: (id, patch) =>
         set((s) => ({
-          notes: s.notes.map((n) =>
-            n.id === id ? { ...n, ...patch, updatedAt: new Date().toISOString() } : n
-          ),
+          notes: s.notes.map((n) => {
+            if (n.id !== id) return n;
+
+            const contentChanged =
+              (patch.cim !== undefined && patch.cim !== n.cim) ||
+              (patch.tartalom !== undefined && patch.tartalom !== n.tartalom);
+
+            let verziok = n.verziok;
+            if (contentChanged) {
+              const existing = n.verziok ?? [];
+              const last = existing[existing.length - 1];
+              const lastAgeMs = last
+                ? Date.now() - new Date(last.mentveKor).getTime()
+                : Infinity;
+              if (lastAgeMs >= NOTE_VERSION_COOLDOWN_MS) {
+                verziok = appendNoteVersion(n);
+              }
+            }
+
+            return { ...n, ...patch, verziok, updatedAt: new Date().toISOString() };
+          }),
         })),
 
       deleteNote: (id) =>
         set((s) => ({ notes: s.notes.filter((n) => n.id !== id) })),
+
+      restoreNoteVersion: (noteId, versionId) =>
+        set((s) => ({
+          notes: s.notes.map((n) => {
+            if (n.id !== noteId) return n;
+            const version = (n.verziok ?? []).find((v) => v.id === versionId);
+            if (!version) return n;
+            return {
+              ...n,
+              cim: version.cim,
+              tartalom: version.tartalom,
+              // A visszaállítás előtti állapotot MINDIG elmentjük, a
+              // hűtési időtől függetlenül — ez egy szándékos, ritka
+              // felhasználói művelet, nem automentés-zaj.
+              verziok: appendNoteVersion(n),
+              updatedAt: new Date().toISOString(),
+            };
+          }),
+        })),
 
       // ---- Órarend (Neptun import) -----------------------------------------------
       importScheduleEvents: (events) => {

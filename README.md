@@ -137,6 +137,10 @@ mindkettő hiba és figyelmeztetés nélkül fut.
   Opcionális, külön beállítást igényel. Ld. lentebb az
   [Email-emlékeztetők beállítása (Resend + Vercel Cron)](#email-emlékeztetők-beállítása-resend--vercel-cron)
   szakaszt.
+- **Jegyzet-verziótörténet** — a jegyzetszerkesztőben egy óra ikon megnyitja
+  a korábbi mentett állapotok listáját, amikből bármelyik egy kattintással
+  visszaállítható (a visszaállítás előtti tartalom is megmarad). Ld. lentebb
+  a [Jegyzet-verziótörténet](#jegyzet-verziótörténet) szakaszt.
 
 ## Felhős szinkronizáció beállítása (Firebase)
 
@@ -456,6 +460,30 @@ kép tömörítve is túl nagy maradna, az app hibaüzenettel jelzi — ilyenkor
 érdemes egy kisebb vagy egyszerűbb képet választani. Ez a korlát nem
 vonatkozik a jegyzet szöveges tartalmára, csak a képmellékletekre.
 
+## Jegyzet-verziótörténet
+
+A jegyzetszerkesztő fejlécében (egy már mentett jegyzetnél) egy óra ikon
+nyitja meg az **"Előzmények"** ablakot, ahol a jegyzet korábbi cím+tartalom
+állapotai listázva vannak — időbélyeggel, kibontható teljes szöveggel, és
+egy **"Visszaállítás"** gombbal. A visszaállítás nem visszafordíthatatlan:
+a visszaállítás előtti állapot is automatikusan bekerül egy új
+pillanatképként, tehát mindig van visszaút.
+
+**Mikor készül új pillanatkép:** a szerkesztő 700ms-es debounce-szal
+automatikusan ment gépelés közben — enélkül a hűtési idő nélkül minden
+apró automentés külön verziót hozna létre, és az előzmények lista
+gyakorlatilag egy gépelés közbeni undo-stack lenne, nem egy áttekinthető
+napló. Ezért az app legfeljebb **5 percenként** vesz fel egy új
+pillanatképet (a visszaállítás művelete ez alól kivétel — az mindig
+elmenti az aktuális állapotot, a hűtési időtől függetlenül).
+
+**Korlátok:** jegyzetenként legfeljebb **15 korábbi verzió** tárolódik — ha
+betelik, a legrégebbi törlődik. Csak a **cím és a szöveges tartalom**
+verziózott, a képmellékletek nem (mert azok mérete a Firestore ~1 MB-os
+dokumentumkorlátját gyorsan szétfeszítené, ha minden verzióban újra
+eltárolódnának) — egy régebbi verzió visszaállítása tehát a jegyzet
+szövegét állítja vissza, a jelenleg csatolt képeket nem érinti.
+
 ## Félév-összefoglaló nyomtatás / PDF export
 
 A Kreditindex nézeten minden félév fejlécében egy nyomtató ikon nyit meg egy
@@ -665,6 +693,7 @@ egyetemi-jegyzetek-app/
 │   │   └── RequirementDialog.tsx     # Követelmény létrehozás/szerkesztés
 │   └── notes/
 │       ├── NoteEditor.tsx            # Jegyzetíró/-szerkesztő Markdown eszköztárral + előnézet
+│       ├── NoteVersionHistoryDialog.tsx # Verziótörténet lista + visszaállítás
 │       ├── GlobalNotes.tsx           # Összes jegyzetem — kereső + címke-szűrő
 │       └── MarkdownContent.tsx       # Renderelt Markdown megjelenítő komponens
 ├── lib/

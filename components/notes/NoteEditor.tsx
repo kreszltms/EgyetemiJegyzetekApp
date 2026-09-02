@@ -19,6 +19,7 @@ import {
   CalendarDays,
   ImagePlus,
   Loader2,
+  History,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -34,8 +35,15 @@ import {
 } from "@/components/ui/select";
 
 import { MarkdownContent } from "@/components/notes/MarkdownContent";
+import { NoteVersionHistoryDialog } from "@/components/notes/NoteVersionHistoryDialog";
 import { useAppStore } from "@/lib/store";
-import { NOTE_CATEGORY_LABELS, type Note, type NoteAttachment, type NoteCategory } from "@/types";
+import {
+  NOTE_CATEGORY_LABELS,
+  type Note,
+  type NoteAttachment,
+  type NoteCategory,
+  type NoteVersion,
+} from "@/types";
 import { SUBJECT_ICONS } from "@/lib/subject-icons";
 import {
   MAX_ATTACHMENTS_PER_NOTE,
@@ -67,9 +75,18 @@ type ViewMode = "szerkesztes" | "hasitott" | "elonezet";
 
 const CATEGORY_OPTIONS: NoteCategory[] = ["eloadas", "gyakorlat", "labor", "egyeb"];
 
+// Stabil, egyszer létrehozott üres tömb-referencia a noteVersions
+// szelektorhoz — enélkül minden render alkalmával egy ÚJ `[]` literál jönne
+// létre a "?? []" fallbacknál, ami megsérti a useSyncExternalStore
+// (Zustand) referencia-egyenlőségi feltételezését, és végtelen render-körbe
+// futna (lásd ugyanezt a mintát lib/auth.ts és lib/cloud-sync.ts
+// kommentjeiben).
+const EMPTY_VERSIONS: NoteVersion[] = [];
+
 export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProps) {
   const addNote = useAppStore((s) => s.addNote);
   const updateNote = useAppStore((s) => s.updateNote);
+  const restoreNoteVersion = useAppStore((s) => s.restoreNoteVersion);
   const subject = useAppStore((s) => s.subjects.find((sub) => sub.id === subjectId));
   const SubjectIcon = SUBJECT_ICONS[subject?.ikon ?? ""] ?? SUBJECT_ICONS.BookOpen;
 
@@ -86,6 +103,14 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
   );
 
   const [viewMode, setViewMode] = useState<ViewMode>("szerkesztes");
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  // Élőben olvassuk a store-ból, hogy az automentés által közben felvett
+  // verziók (lásd lib/store.ts updateNote) is megjelenjenek a Történet
+  // dialógusban, ne csak a komponens megnyitásakori pillanatkép.
+  const noteVersions = useAppStore(
+    (s) => s.notes.find((n) => n.id === savedNoteId)?.verziok ?? EMPTY_VERSIONS
+  );
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
@@ -138,6 +163,23 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
         updatedAt: new Date().toISOString(),
       });
     }
+  }
+
+  // ---- Verziótörténet: korábbi állapot visszaállítása ---------------------
+  function handleRestoreVersion(version: NoteVersion) {
+    if (!savedNoteId) return;
+    restoreNoteVersion(savedNoteId, version.id);
+    // A store-beli visszaállítást a szerkesztő saját (kontrollált input)
+    // állapotában is át kell vezetni, különben a mezők a store frissítése
+    // után is a régi tartalmat mutatnák.
+    setCim(version.cim);
+    setTartalom(version.tartalom);
+    isDirty.current = false;
+    setLastSavedAt(new Date());
+    setHistoryOpen(false);
+    toast.success(
+      "Korábbi verzió visszaállítva — az előző tartalom is elmentve az előzmények közé."
+    );
   }
 
   // ---- Képmelléklet feltöltése -------------------------------------------
@@ -253,6 +295,17 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
             aria-label="Jegyzet címe"
             className="h-auto border-none px-0 text-2xl font-semibold shadow-none"
           />
+          {savedNoteId && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setHistoryOpen(true)}
+              aria-label="Verziótörténet megtekintése"
+              title="Verziótörténet"
+            >
+              <History className="h-4 w-4" />
+            </Button>
+          )}
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="Bezárás">
             <X className="h-4 w-4" />
           </Button>
@@ -570,6 +623,15 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
           </div>
         </div>
       </div>
+
+      {savedNoteId && (
+        <NoteVersionHistoryDialog
+          open={historyOpen}
+          onOpenChange={setHistoryOpen}
+          versions={noteVersions}
+          onRestore={handleRestoreVersion}
+        />
+      )}
     </div>
   );
 }

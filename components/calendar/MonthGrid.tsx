@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   buildMonthMatrix,
   dateKeyFromDate,
+  formatDateKeyHu,
   huMonthYearLabel,
   huWeekdayShort,
   startOfMonth,
@@ -95,6 +96,11 @@ export function MonthGrid({ items, selectedDateKey, onSelectDay }: MonthGridProp
             <button
               key={dateKey}
               onClick={() => onSelectDay(dateKey)}
+              aria-label={`${formatDateKeyHu(dateKey)}${
+                dayItems.length > 0 ? `, ${dayItems.length} esemény` : ""
+              }`}
+              aria-pressed={isSelected}
+              aria-current={isToday ? "date" : undefined}
               className={cn(
                 "flex min-h-20 flex-col items-start gap-0.5 border-b border-r p-1.5 text-left align-top transition-colors last:border-r-0 [&:nth-child(7n)]:border-r-0 hover:bg-muted/40",
                 !isCurrentMonth && "bg-muted/20 text-muted-foreground/50",

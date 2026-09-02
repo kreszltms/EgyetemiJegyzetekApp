@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { GraduationCap, Loader2, Menu } from "lucide-react";
 
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -10,6 +10,7 @@ import { NoteEditor } from "@/components/notes/NoteEditor";
 import { GlobalNotes } from "@/components/notes/GlobalNotes";
 import { CalendarView } from "@/components/calendar/CalendarView";
 import { KreditIndexView } from "@/components/kreditindex/KreditIndexView";
+import { CommandPalette } from "@/components/layout/CommandPalette";
 import { AuthScreen, FirebaseNotConfiguredScreen } from "@/components/auth/AuthScreen";
 import { Button } from "@/components/ui/button";
 import { useAuthStatus } from "@/lib/auth";
@@ -28,11 +29,25 @@ export type Nezet =
 export function AppShell() {
   const [nezet, setNezet] = useState<Nezet>({ tipus: "otthon" });
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const { configured, ready, user } = useAuthStatus();
 
   // Csak akkor fejt ki hatást, ha van bejelentkezett felhasználó (uid) —
   // mindig meg kell hívni, hogy ne sértsük a React hooks szabályait.
   useCloudSync(user?.uid ?? null);
+
+  // Globális Ctrl+K / Cmd+K billentyűparancs a gyorskereséshez — bárhonnan
+  // elérhető, függetlenül attól, melyik nézeten állunk épp.
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setCommandPaletteOpen((v) => !v);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   if (!configured) {
     return <FirebaseNotConfiguredScreen />;
@@ -77,8 +92,18 @@ export function AppShell() {
           mobileNavOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <Sidebar nezet={nezet} onNavigate={handleNavigate} />
+        <Sidebar
+          nezet={nezet}
+          onNavigate={handleNavigate}
+          onOpenCommandPalette={() => setCommandPaletteOpen(true)}
+        />
       </div>
+
+      <CommandPalette
+        open={commandPaletteOpen}
+        onOpenChange={setCommandPaletteOpen}
+        onNavigate={handleNavigate}
+      />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Mobil felső sáv: hamburger menü, csak kis képernyőn látszik */}

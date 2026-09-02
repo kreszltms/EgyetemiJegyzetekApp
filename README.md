@@ -113,6 +113,24 @@ mindkettő hiba és figyelmeztetés nélkül fut.
   asztali gépről/telefonról telepíthető, saját ikonnal, és a korábban már
   megnyitott oldalak internet nélkül is betöltődnek. Ld. lentebb a
   [Telepíthető alkalmazás (PWA)](#telepíthető-alkalmazás-pwa) szakaszt.
+- **Gyors keresés / parancspaletta** — `Ctrl+K` (vagy `Cmd+K` Mac-en)
+  bárhonnan megnyit egy keresőt, amiben nézetek, tárgyak és jegyzetek között
+  lehet ugrálni anélkül, hogy a sidebar-ban kellene keresgélni. Ld. lentebb a
+  [Gyors keresés](#gyors-keresés--parancspaletta-ctrlk) szakaszt.
+- **Jegyzet-mellékletek** — a jegyzetszerkesztőben képet csatolhatsz (pl. a
+  táblafotó), amit az app automatikusan tömörít. Ld. lentebb a
+  [Jegyzet-mellékletek](#jegyzet-mellékletek) szakaszt.
+- **Jegyzet-sablonok** — új, üres jegyzetnél egy kattintással előtölthető
+  Markdown-váz (Előadás / Vizsgafelkészülés / Gyakorlat), hogy ne üres lappal
+  kelljen indulni.
+- **Félév-összefoglaló nyomtatás / PDF export** — a Kreditindex nézeten
+  félévenként kinyomtatható (vagy PDF-ként elmenthető) egy áttekintő
+  összefoglaló a tárgyakról, jegyekről, kreditekről és hiányzásokról. Ld.
+  lentebb a [Félév-összefoglaló nyomtatás](#félév-összefoglaló-nyomtatás--pdf-export)
+  szakaszt.
+- **.ics naptár-import** — a saját (pl. egyetemi) naptárad `.ics` fájlját is
+  beimportálhatod a Naptár nézetbe, az export visszafelé irányaként. Ld.
+  lentebb az [.ics naptár-import](#ics-naptár-import) szakaszt.
 
 ## Felhős szinkronizáció beállítása (Firebase)
 
@@ -399,6 +417,66 @@ online működik). Ez fejlesztői módban (`next dev`) szándékosan ki van
 kapcsolva, hogy ne zavarja a hot-reloadot — csak éles (`next build` +
 `next start`, illetve a Vercelre telepített verzió) build-ben aktiválódik.
 
+## Gyors keresés / parancspaletta (`Ctrl+K`)
+
+A sidebar tetején lévő "Gyors keresés…" mezőre kattintva, vagy bárhonnan a
+`Ctrl+K` (Mac-en `Cmd+K`) billentyűkombinációval megnyitható egy kereső
+ablak, amiben gépelés közben egyszerre látod:
+
+- a fő **nézeteket** (Kezdőlap, Naptár, Kreditindex, Összes jegyzetem),
+- a **tárgyaidat** (név vagy tárgykód alapján kereshetők),
+- a **jegyzeteidet** (cím és tartalom alapján is — üres keresésnél a
+  legutóbb módosítottak jelennek meg elsőként).
+
+A nyílbillentyűkkel navigálhatsz a találatok között, `Enter`-rel ugorhatsz a
+kiválasztottra, `Esc`-kel zárhatod be. Ha egy tárgy egy nem az aktív
+félévedben van, a kiválasztás automatikusan azt a félévet is aktívvá teszi,
+hogy a sidebar és a tárgy-nézet konzisztens maradjon.
+
+## Jegyzet-mellékletek
+
+A jegyzetszerkesztő eszköztárában a kép ikonra kattintva (vagy a
+`Ctrl+K`-hoz hasonlóan a fájlválasztóval) képet csatolhatsz egy jegyzethez —
+pl. egy lefotózott táblaképet vagy ábrát. A csatolt képek kis
+bélyegképként jelennek meg a jegyzet alján, és teljes méretben egy új fülön
+nyithatók meg.
+
+**Fontos korlát:** mivel az egész alkalmazásállapot (az összes féléved,
+tárgyad és jegyzeted) egyetlen Firestore-dokumentumban szinkronizálódik a
+felhővel, aminek kb. 1 MB-os mérethatára van, a képeket feltöltéskor az app
+automatikusan tömöríti (kb. 1280 px-es max. méretre skálázva, JPEG
+minőségcsökkentéssel), és jegyzetenként legfeljebb 6 kép csatolható. Ha egy
+kép tömörítve is túl nagy maradna, az app hibaüzenettel jelzi — ilyenkor
+érdemes egy kisebb vagy egyszerűbb képet választani. Ez a korlát nem
+vonatkozik a jegyzet szöveges tartalmára, csak a képmellékletekre.
+
+## Félév-összefoglaló nyomtatás / PDF export
+
+A Kreditindex nézeten minden félév fejlécében egy nyomtató ikon nyit meg egy
+áttekintő, nyomtatható összefoglalót az adott félévről: kredit-súlyozott
+átlag, összes és megszerzett kredit, majd tárgyanként a kredit, a becsült
+jegy és a hiányzás egy táblázatban. Az összefoglaló egy új ablakban nyílik
+meg, és automatikusan elindítja a böngésző nyomtatási párbeszédét — itt
+választhatod ki, hogy ténylegesen nyomtatod-e, vagy "Mentés PDF-ként"
+céllal fájlba mented. Ha a böngésződ letiltja a felugró ablakot, egy toast
+jelzi, hogy engedélyezned kell.
+
+## .ics naptár-import
+
+A [.ics naptár-export](#ics-naptár-export) visszafelé iránya: a Naptár
+nézeten a **"Naptár importálása (.ics)"** gombbal egy külső (pl. egyetemi
+vagy más hallgatói) naptár `.ics` fájlját is beimportálhatod. A benne lévő
+eseményeket az app hozzáadja a meglévő órarendedhez (nem cseréli le, mint a
+Neptun-import), és — a névegyezés alapján — automatikusan összekapcsolja a
+tárgyaiddal, ahol lehet. Ugyanazt a fájlt véletlenül kétszer importálva a
+már meglévő (azonos című, azonos időpontú) eseményeket az app kihagyja, nem
+duplikálja.
+
+**Korlátok:** az időzóna-jelöléseket (TZID) nem értelmezi az importáló —
+az időpontokat a böngésződ saját (helyi) időzónájában kezeli, ami magyar
+naptáraknál a gyakorlatban helyes eredményt ad; ismétlődő eseményeket
+(`RRULE`) nem bontja ki, csak az egyszeri előfordulást importálja.
+
 ## Élesítés (deploy) Vercelre — hogy tényleg bárhonnan elérd
 
 A fenti Firebase-beállítás csak a szinkronizációt oldja meg — ahhoz, hogy
@@ -484,6 +562,8 @@ egyetemi-jegyzetek-app/
 │   │   ├── AppShell.tsx              # Auth-kapu + nézet-állapotgép (Nezet típus) + fő elrendezés
 │   │   ├── Sidebar.tsx               # Félévek/tárgyak fa nézet, téma váltó, export/import, sync jelző, kijelentkezés
 │   │   ├── HomeOverview.tsx          # Kezdőlap dashboard
+│   │   ├── CommandPalette.tsx        # Gyors keresés / parancspaletta (Ctrl+K)
+│   │   ├── ReminderBell.tsx          # Határidő-emlékeztető harang
 │   │   └── theme-toggle.tsx          # Sötét/világos mód gomb
 │   ├── semesters/
 │   │   └── SemesterFormDialog.tsx    # Félév létrehozás/szerkesztés
@@ -503,6 +583,11 @@ egyetemi-jegyzetek-app/
 │   ├── cloud-sync.ts                 # Kétirányú Firestore szinkron (useCloudSync, useSyncStatus)
 │   ├── markdown.ts                   # renderMarkdown() — marked wrapper
 │   ├── subject-icons.ts              # Választható tárgy-ikonok
+│   ├── note-attachments.ts           # Képmelléklet-tömörítés (canvas), méretkorlátok
+│   ├── note-templates.ts             # Jegyzet-sablonok (Markdown vázak)
+│   ├── ics-export.ts                 # .ics naptár-export (RFC5545)
+│   ├── ics-import.ts                 # .ics naptár-import (RFC5545 parse)
+│   ├── semester-summary.ts           # Félév-összefoglaló nyomtatás / PDF export
 │   └── utils.ts                      # cn(), formatDateHu(), parseTags()...
 ├── types/
 │   └── index.ts                      # Semester, Subject, Note, Requirement

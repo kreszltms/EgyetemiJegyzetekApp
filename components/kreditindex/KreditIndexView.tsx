@@ -1,14 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Archive, Award, ChevronDown, ChevronRight } from "lucide-react";
+import { Archive, Award, ChevronDown, ChevronRight, Printer } from "lucide-react";
+import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CelKreditCard } from "@/components/kreditindex/CelKreditCard";
 import { JegytrendChart } from "@/components/kreditindex/JegytrendChart";
 import { computeKreditIndex, type KreditIndexResult } from "@/lib/kreditindex";
 import { formatGrade, GRADE_COLOR_CLASSES } from "@/lib/pontozas";
+import { openSemesterSummaryPrint } from "@/lib/semester-summary";
 import { useAppStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import type { Nezet } from "@/components/layout/AppShell";
@@ -131,14 +134,15 @@ export function KreditIndexView({ onNavigate }: { onNavigate: (n: Nezet) => void
             <div>
               <button
                 onClick={() => setArchivumNyitva((v) => !v)}
+                aria-expanded={archivumNyitva}
                 className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase hover:text-foreground"
               >
                 {archivumNyitva ? (
-                  <ChevronDown className="h-3.5 w-3.5" />
+                  <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
                 ) : (
-                  <ChevronRight className="h-3.5 w-3.5" />
+                  <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
                 )}
-                <Archive className="h-3.5 w-3.5" />
+                <Archive className="h-3.5 w-3.5" aria-hidden="true" />
                 Archivált félévek ({archivaltFelevenkent.length})
               </button>
 
@@ -175,20 +179,43 @@ function SemesterKreditBlock({
   result: KreditIndexResult;
   onNavigate: (n: Nezet) => void;
 }) {
+  function handlePrint() {
+    const ok = openSemesterSummaryPrint(semester, result);
+    if (!ok) {
+      toast.error(
+        "A böngésző letiltotta a felugró ablakot — engedélyezd, majd próbáld újra."
+      );
+    }
+  }
+
   return (
     <div>
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="text-sm font-medium text-foreground">{semester.nev}</h2>
-        <span className="text-sm text-muted-foreground">
-          {result.average !== null ? (
-            <>
-              <strong className="text-foreground">{result.average.toFixed(2)}</strong> ·{" "}
-              {result.totalKredit} kredit
-            </>
-          ) : (
-            "még nincs beszámítható tárgy"
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-muted-foreground">
+            {result.average !== null ? (
+              <>
+                <strong className="text-foreground">{result.average.toFixed(2)}</strong> ·{" "}
+                {result.totalKredit} kredit
+              </>
+            ) : (
+              "még nincs beszámítható tárgy"
+            )}
+          </span>
+          {result.items.length > 0 && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground"
+              onClick={handlePrint}
+              title="Félév-összefoglaló nyomtatása / PDF exportálása"
+              aria-label="Félév-összefoglaló nyomtatása / PDF exportálása"
+            >
+              <Printer className="h-3.5 w-3.5" />
+            </Button>
           )}
-        </span>
+        </div>
       </div>
 
       {result.items.length === 0 ? (

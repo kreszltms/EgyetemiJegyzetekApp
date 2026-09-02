@@ -18,6 +18,7 @@ import {
   NotebookText,
   Pencil,
   Plus,
+  Search,
   Trash2,
   Upload,
 } from "lucide-react";
@@ -62,9 +63,11 @@ const SYNC_STATUS_META = {
 interface SidebarProps {
   nezet: Nezet;
   onNavigate: (nezet: Nezet) => void;
+  /** A gyors keresés / parancspaletta (Ctrl+K) megnyitása. */
+  onOpenCommandPalette: () => void;
 }
 
-export function Sidebar({ nezet, onNavigate }: SidebarProps) {
+export function Sidebar({ nezet, onNavigate, onOpenCommandPalette }: SidebarProps) {
   const semesters = useAppStore((s) => s.semesters);
   const subjects = useAppStore((s) => s.subjects);
   const setActiveSemester = useAppStore((s) => s.setActiveSemester);
@@ -158,6 +161,19 @@ export function Sidebar({ nezet, onNavigate }: SidebarProps) {
           className="text-sm font-semibold hover:opacity-80"
         >
           Egyetemi Jegyzetek
+        </button>
+      </div>
+
+      <div className="px-3 pb-3">
+        <button
+          onClick={onOpenCommandPalette}
+          className="flex w-full items-center gap-2 rounded-md border bg-background px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted"
+        >
+          <Search className="h-3.5 w-3.5" />
+          <span className="flex-1 text-left">Gyors keresés…</span>
+          <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">
+            Ctrl K
+          </kbd>
         </button>
       </div>
 
@@ -259,12 +275,13 @@ export function Sidebar({ nezet, onNavigate }: SidebarProps) {
           <div className="mt-2">
             <button
               onClick={() => setArchivumNyitva((v) => !v)}
+              aria-expanded={archivumNyitva}
               className="flex w-full items-center gap-1 rounded-md px-1 py-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase hover:text-foreground"
             >
               {archivumNyitva ? (
-                <ChevronDown className="h-3 w-3" />
+                <ChevronDown className="h-3 w-3" aria-hidden="true" />
               ) : (
-                <ChevronRight className="h-3 w-3" />
+                <ChevronRight className="h-3 w-3" aria-hidden="true" />
               )}
               Archívum ({archivaltFelevek.length})
             </button>

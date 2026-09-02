@@ -17,6 +17,8 @@ import {
   Pencil,
   Columns2,
   CalendarDays,
+  ImagePlus,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -33,8 +35,14 @@ import {
 
 import { MarkdownContent } from "@/components/notes/MarkdownContent";
 import { useAppStore } from "@/lib/store";
-import { NOTE_CATEGORY_LABELS, type Note, type NoteCategory } from "@/types";
+import { NOTE_CATEGORY_LABELS, type Note, type NoteAttachment, type NoteCategory } from "@/types";
 import { SUBJECT_ICONS } from "@/lib/subject-icons";
+import {
+  MAX_ATTACHMENTS_PER_NOTE,
+  formatAttachmentSize,
+  processImageFile,
+} from "@/lib/note-attachments";
+import { NOTE_TEMPLATES } from "@/lib/note-templates";
 import { cn, parseTags, todayIso } from "@/lib/utils";
 
 // ============================================================================
@@ -70,6 +78,8 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
   const [datum, setDatum] = useState(note?.datum ?? todayIso());
   const [tartalom, setTartalom] = useState(note?.tartalom ?? "");
   const [tagInput, setTagInput] = useState(note?.cimkek.map((t) => `#${t}`).join(" ") ?? "");
+  const [attachments, setAttachments] = useState<NoteAttachment[]>(note?.mellekletek ?? []);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [savedNoteId, setSavedNoteId] = useState<string | undefined>(note?.id);
   const [lastSavedAt, setLastSavedAt] = useState<Date | undefined>(
     note ? new Date(note.updatedAt) : undefined
@@ -78,6 +88,7 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
   const [viewMode, setViewMode] = useState<ViewMode>("szerkesztes");
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
   const tags = useMemo(() => parseTags(tagInput), [tagInput]);
 
   const wordCount = useMemo(() => {
@@ -88,29 +99,29 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
   const isDirty = useRef(false);
   useEffect(() => {
     isDirty.current = true;
-  }, [cim, tipus, datum, tartalom, tagInput]);
+  }, [cim, tipus, datum, tartalom, tagInput, attachments]);
 
   // ---- Automatikus mentés (debounce), csak már létező jegyzetnél ----------
   useEffect(() => {
     if (!savedNoteId) return; // új jegyzetnél explicit "Mentés" gomb kell
     if (!isDirty.current) return;
     const timeout = setTimeout(() => {
-      updateNote(savedNoteId, { cim, tipus, datum, tartalom, cimkek: tags });
+      updateNote(savedNoteId, { cim, tipus, datum, tartalom, cimkek: tags, mellekletek: attachments });
       setLastSavedAt(new Date());
       isDirty.current = false;
     }, 700);
     return () => clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cim, tipus, datum, tartalom, tags, savedNoteId]);
+  }, [cim, tipus, datum, tartalom, tags, attachments, savedNoteId]);
 
   function handleManualSave() {
     if (!cim.trim()) return;
     if (savedNoteId) {
-      updateNote(savedNoteId, { cim, tipus, datum, tartalom, cimkek: tags });
+      updateNote(savedNoteId, { cim, tipus, datum, tartalom, cimkek: tags, mellekletek: attachments });
       setLastSavedAt(new Date());
       toast.success("Jegyzet mentve");
     } else {
-      const id = addNote({ subjectId, cim, tipus, datum, tartalom, cimkek: tags });
+      const id = addNote({ subjectId, cim, tipus, datum, tartalom, cimkek: tags, mellekletek: attachments });
       setSavedNoteId(id);
       setLastSavedAt(new Date());
       toast.success("Jegyzet létrehozva");
@@ -122,10 +133,36 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
         datum,
         tartalom,
         cimkek: tags,
+        mellekletek: attachments,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
     }
+  }
+
+  // ---- Képmelléklet feltöltése -------------------------------------------
+  async function handleAttachmentFiles(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    const remaining = MAX_ATTACHMENTS_PER_NOTE - attachments.length;
+    if (remaining <= 0) {
+      toast.error(`Legfeljebb ${MAX_ATTACHMENTS_PER_NOTE} kép csatolható egy jegyzethez.`);
+      return;
+    }
+    const selected = Array.from(files).slice(0, remaining);
+    setUploadingAttachment(true);
+    for (const file of selected) {
+      const result = await processImageFile(file);
+      if (result.success) {
+        setAttachments((prev) => [...prev, result.attachment]);
+      } else {
+        toast.error(result.error);
+      }
+    }
+    setUploadingAttachment(false);
+  }
+
+  function removeAttachment(id: string) {
+    setAttachments((prev) => prev.filter((a) => a.id !== id));
   }
 
   // ---- Markdown gyorsgombok: szintaxis beszúrása a kurzor pozíciójába ----
@@ -213,7 +250,8 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
             value={cim}
             onChange={(e) => setCim(e.target.value)}
             placeholder="Jegyzet címe…"
-            className="h-auto border-none px-0 text-2xl font-semibold shadow-none focus-visible:ring-0"
+            aria-label="Jegyzet címe"
+            className="h-auto border-none px-0 text-2xl font-semibold shadow-none"
           />
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="Bezárás">
             <X className="h-4 w-4" />
@@ -234,22 +272,24 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
             </SelectContent>
           </Select>
 
-          <div className="flex h-9 w-40 items-center gap-1.5 rounded-md border px-3">
-            <CalendarDays className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <div className="flex h-9 w-40 items-center gap-1.5 rounded-md border px-3 focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50">
+            <CalendarDays className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
             <input
               type="date"
               value={datum}
               onChange={(e) => setDatum(e.target.value)}
+              aria-label="Jegyzet dátuma"
               className="h-full flex-1 bg-transparent text-sm outline-none [color-scheme:light] dark:[color-scheme:dark]"
             />
           </div>
 
-          <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-md border px-3">
-            <TagIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-md border px-3 focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50">
+            <TagIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
             <input
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
               placeholder="#vizsgakérdés #definíció"
+              aria-label="Címkék (# jellel elválasztva)"
               className="h-9 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
             />
           </div>
@@ -292,6 +332,7 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
                     size="icon"
                     className="h-8 w-8"
                     title={label}
+                    aria-label={label}
                     disabled={editingDisabled}
                     onClick={() => insertMarkdown(prefix, suffix, placeholder)}
                   >
@@ -300,6 +341,34 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
                 ))}
               </div>
             ))}
+            <div className="mx-0.5 h-5 w-px bg-border" aria-hidden="true" />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              title="Kép csatolása"
+              aria-label="Kép csatolása"
+              disabled={editingDisabled || uploadingAttachment || attachments.length >= MAX_ATTACHMENTS_PER_NOTE}
+              onClick={() => attachmentInputRef.current?.click()}
+            >
+              {uploadingAttachment ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ImagePlus className="h-4 w-4" />
+              )}
+            </Button>
+            <input
+              ref={attachmentInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                handleAttachmentFiles(e.target.files);
+                e.target.value = "";
+              }}
+            />
           </div>
 
           {/* Háromállású nézetválasztó: szerkesztés / hasított / előnézet */}
@@ -311,6 +380,8 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
               className="h-7 gap-1.5 px-2 text-xs"
               onClick={() => setViewMode("szerkesztes")}
               title="Csak szerkesztés"
+              aria-label="Csak szerkesztés"
+              aria-pressed={viewMode === "szerkesztes"}
             >
               <Pencil className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Szerkesztés</span>
@@ -322,6 +393,8 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
               className="h-7 gap-1.5 px-2 text-xs"
               onClick={() => setViewMode("hasitott")}
               title="Hasított nézet (szerkesztés + élő előnézet)"
+              aria-label="Hasított nézet"
+              aria-pressed={viewMode === "hasitott"}
             >
               <Columns2 className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Hasított</span>
@@ -333,12 +406,31 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
               className="h-7 gap-1.5 px-2 text-xs"
               onClick={() => setViewMode("elonezet")}
               title="Csak előnézet"
+              aria-label="Csak előnézet"
+              aria-pressed={viewMode === "elonezet"}
             >
               <Eye className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Előnézet</span>
             </Button>
           </div>
         </div>
+
+        {/* Sablon-választó — csak amíg a jegyzet üres, utána eltűnik */}
+        {tartalom.trim() === "" && viewMode !== "elonezet" && (
+          <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+            <span>Kezdés sablonnal:</span>
+            {NOTE_TEMPLATES.map((tpl) => (
+              <button
+                key={tpl.id}
+                type="button"
+                onClick={() => setTartalom(tpl.content)}
+                className="rounded-full border px-2.5 py-1 transition-colors hover:bg-muted hover:text-foreground"
+              >
+                {tpl.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* -------------------------------------------------------------- */}
         {/* Tartalom szerkesztő / élő előnézet                                */}
@@ -366,8 +458,9 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
                 value={tartalom}
                 onChange={(e) => setTartalom(e.target.value)}
                 placeholder="Kezdd el írni a jegyzetet… (Markdown formázás támogatott)"
+                aria-label="Jegyzet tartalma (Markdown)"
                 className={cn(
-                  "flex-1 resize-none text-[15px] leading-relaxed shadow-none focus-visible:ring-0",
+                  "flex-1 resize-none text-[15px] leading-relaxed shadow-none",
                   viewMode === "hasitott"
                     ? "rounded-md border px-3 py-2.5"
                     : "border-none px-0"
@@ -400,6 +493,43 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
             </div>
           )}
         </div>
+
+        {/* -------------------------------------------------------------- */}
+        {/* Csatolt képek                                                     */}
+        {/* -------------------------------------------------------------- */}
+        {attachments.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {attachments.map((att) => (
+              <a
+                key={att.id}
+                href={att.dataUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="group relative block h-20 w-20 shrink-0 overflow-hidden rounded-md border"
+                title={`${att.nev} (${formatAttachmentSize(att.meret)}) — megnyitás teljes méretben`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- data URL, nem Next Image-kompatibilis forrás */}
+                <img
+                  src={att.dataUrl}
+                  alt={att.nev}
+                  className="h-full w-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    removeAttachment(att.id);
+                  }}
+                  aria-label={`${att.nev} melléklet eltávolítása`}
+                  className="absolute top-1 right-1 rounded-full bg-black/60 p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </a>
+            ))}
+          </div>
+        )}
 
         {/* -------------------------------------------------------------- */}
         {/* Lábléc: mentés státusz + gombok                                   */}

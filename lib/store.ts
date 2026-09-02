@@ -76,7 +76,8 @@ interface AppState {
 
   // ---- Jegyzetek ------------------------------------------------------------
   addNote: (
-    data: Pick<Note, "subjectId" | "cim" | "tipus" | "datum" | "tartalom" | "cimkek">
+    data: Pick<Note, "subjectId" | "cim" | "tipus" | "datum" | "tartalom" | "cimkek"> &
+      Partial<Pick<Note, "mellekletek">>
   ) => string;
   updateNote: (id: string, patch: Partial<Omit<Note, "id">>) => void;
   deleteNote: (id: string) => void;
@@ -89,6 +90,15 @@ interface AppState {
   importScheduleEvents: (
     events: ParsedScheduleEvent[]
   ) => { imported: number; matched: number };
+  /**
+   * Külső .ics fájlból importált eseményeket ad HOZZÁ a meglévő órarendhez
+   * (nem cseréli le, mint a Neptun-import) — a duplikátumokat (azonos cím +
+   * kezdés + befejezés) kihagyja, hogy ugyanazt a fájlt kétszer beimportálva
+   * ne jelenjen meg minden esemény duplán.
+   */
+  importIcsEvents: (
+    events: ParsedScheduleEvent[]
+  ) => { imported: number; matched: number; skipped: number };
   clearSchedule: () => void;
 
   // ---- Szelektorok (számított lekérdezések) ----------------------------------
@@ -331,6 +341,7 @@ export const useAppStore = create<AppState>()(
           datum: data.datum,
           tartalom: data.tartalom,
           cimkek: data.cimkek,
+          mellekletek: data.mellekletek ?? [],
           createdAt: now,
           updatedAt: now,
         };
@@ -361,6 +372,32 @@ export const useAppStore = create<AppState>()(
         });
         set({ scheduleEvents });
         return { imported: scheduleEvents.length, matched };
+      },
+
+      importIcsEvents: (events) => {
+        const subjects = get().subjects;
+        const existing = get().scheduleEvents;
+        const existingKeys = new Set(
+          existing.map((ev) => `${ev.cim.toLowerCase()}|${ev.kezdes}|${ev.befejezes}`)
+        );
+        let matched = 0;
+        let skipped = 0;
+        const toAdd: ScheduleEvent[] = [];
+        for (const ev of events) {
+          const key = `${ev.cim.toLowerCase()}|${ev.kezdes}|${ev.befejezes}`;
+          if (existingKeys.has(key)) {
+            skipped += 1;
+            continue;
+          }
+          existingKeys.add(key);
+          const subject = subjects.find(
+            (sub) => sub.nev.trim().toLowerCase() === ev.cim.trim().toLowerCase()
+          );
+          if (subject) matched += 1;
+          toAdd.push({ ...ev, id: generateId(), subjectId: subject?.id });
+        }
+        set({ scheduleEvents: [...existing, ...toAdd] });
+        return { imported: toAdd.length, matched, skipped };
       },
 
       clearSchedule: () => set({ scheduleEvents: [] }),

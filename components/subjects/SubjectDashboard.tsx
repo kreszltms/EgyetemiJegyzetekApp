@@ -13,6 +13,7 @@ import {
   Presentation,
   FileText,
   FlaskConical,
+  ImageIcon,
   MoreHorizontal,
   Pencil,
   Trash2,
@@ -296,6 +297,7 @@ export function SubjectDashboard({
                   size="icon"
                   className="h-6 w-6"
                   onClick={() => decrementHianyzas(subject.id)}
+                  aria-label="Hiányzás csökkentése"
                 >
                   −
                 </Button>
@@ -304,6 +306,7 @@ export function SubjectDashboard({
                   size="icon"
                   className="h-6 w-6"
                   onClick={handleIncrementHianyzas}
+                  aria-label="Hiányzás növelése"
                 >
                   +
                 </Button>
@@ -412,6 +415,12 @@ export function SubjectDashboard({
                           <span className="text-xs text-muted-foreground">
                             {formatDateHu(note.datum)}
                           </span>
+                          {note.mellekletek && note.mellekletek.length > 0 && (
+                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <ImageIcon className="h-3 w-3" />
+                              {note.mellekletek.length}
+                            </span>
+                          )}
                           {note.cimkek.map((tag) => (
                             <span
                               key={tag}
@@ -434,6 +443,7 @@ export function SubjectDashboard({
                           size="icon"
                           className="h-7 w-7 shrink-0"
                           onClick={(e) => e.stopPropagation()}
+                          aria-label={`„${note.cim}” jegyzet műveletei`}
                         >
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
@@ -691,11 +701,23 @@ function RequirementRow({
             {formatDateHu(requirement.hatarido)}
           </span>
         )}
-        <div className="flex opacity-0 transition-opacity group-hover:opacity-100">
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit}>
+        <div className="flex opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={onEdit}
+            aria-label={`„${requirement.nev}” szerkesztése`}
+          >
             <Pencil className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onDelete}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={onDelete}
+            aria-label={`„${requirement.nev}” törlése`}
+          >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>

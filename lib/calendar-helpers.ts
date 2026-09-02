@@ -131,12 +131,22 @@ export function buildCalendarItems(
     if (Number.isNaN(start.getTime())) continue;
     const subject = ev.subjectId ? subjectById.get(ev.subjectId) : undefined;
     const roomAndTeacher = [ev.terem, ev.oktato].filter(Boolean).join(" · ");
+    // Egésznapos esemény (pl. importált .ics-ből) felismerése: 00:00-kor
+    // kezdődik, és legalább ~23 órán át tart — ilyenkor "Egész nap" jelölést
+    // mutatunk pontos időintervallum helyett.
+    const isAllDay =
+      !Number.isNaN(end.getTime()) &&
+      start.getHours() === 0 &&
+      start.getMinutes() === 0 &&
+      end.getTime() - start.getTime() >= 23 * 60 * 60 * 1000;
     items.push({
       id: ev.id,
       kind: "ora",
       cim: ev.cim,
       dateKey: dateKeyFromDate(start),
-      timeLabel: Number.isNaN(end.getTime())
+      timeLabel: isAllDay
+        ? "Egész nap"
+        : Number.isNaN(end.getTime())
         ? timeLabelFromDate(start)
         : `${timeLabelFromDate(start)}–${timeLabelFromDate(end)}`,
       sortTime: timeLabelFromDate(start),

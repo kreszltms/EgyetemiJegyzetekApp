@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, Tag as TagIcon, X } from "lucide-react";
+import { ImageIcon, Search, Tag as TagIcon, X } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -123,6 +123,12 @@ export function GlobalNotes({ onOpenNote }: { onOpenNote: (note: Note) => void }
                   <span className="text-xs text-muted-foreground">
                     {formatDateHu(note.datum)}
                   </span>
+                  {note.mellekletek && note.mellekletek.length > 0 && (
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <ImageIcon className="h-3 w-3" />
+                      {note.mellekletek.length}
+                    </span>
+                  )}
                   {note.cimkek.map((tag) => (
                     <span
                       key={tag}

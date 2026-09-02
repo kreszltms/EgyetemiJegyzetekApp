@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { CalendarDays, CalendarSearch, Download, Trash2, Upload } from "lucide-react";
+import { CalendarDays, CalendarSearch, Download, Trash2, Upload, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import { ScheduleList } from "@/components/calendar/ScheduleList";
 import { ZhNaptarImportDialog } from "@/components/calendar/ZhNaptarImportDialog";
 import { useAppStore } from "@/lib/store";
 import { parseNeptunScheduleFile } from "@/lib/neptun-xlsx";
+import { parseIcsFile } from "@/lib/ics-import";
 import { buildCalendarItems, formatDateKeyHu, todayDateKey } from "@/lib/calendar-helpers";
 import { downloadIcsCalendar } from "@/lib/ics-export";
 
@@ -28,13 +29,16 @@ export function CalendarView() {
   const scheduleEvents = useAppStore((s) => s.scheduleEvents);
   const subjects = useAppStore((s) => s.subjects);
   const importScheduleEvents = useAppStore((s) => s.importScheduleEvents);
+  const importIcsEvents = useAppStore((s) => s.importIcsEvents);
   const clearSchedule = useAppStore((s) => s.clearSchedule);
 
   const [importing, setImporting] = useState(false);
+  const [icsImporting, setIcsImporting] = useState(false);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
   const [zhDialogOpen, setZhDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const icsFileInputRef = useRef<HTMLInputElement>(null);
 
   const allItems = useMemo(
     () => buildCalendarItems(scheduleEvents, subjects),
@@ -67,6 +71,30 @@ export function CalendarView() {
       matched > 0
         ? `${imported} óra importálva — ebből ${matched} automatikusan összekapcsolva a tárgyaiddal.`
         : `${imported} óra importálva.`
+    );
+  }
+
+  async function handleIcsFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setIcsImporting(true);
+    const result = await parseIcsFile(file);
+    setIcsImporting(false);
+    if (!result.success) {
+      toast.error(result.error);
+      return;
+    }
+    const { imported, matched, skipped } = importIcsEvents(result.events);
+    if (imported === 0) {
+      toast.info("Nincs új esemény — ez a naptár már be volt importálva.");
+      return;
+    }
+    const skippedPart = skipped > 0 ? ` (${skipped} már korábban importált esemény kimaradt)` : "";
+    toast.success(
+      matched > 0
+        ? `${imported} esemény importálva — ebből ${matched} automatikusan összekapcsolva a tárgyaiddal.${skippedPart}`
+        : `${imported} esemény importálva.${skippedPart}`
     );
   }
 
@@ -116,6 +144,22 @@ export function CalendarView() {
             <CalendarSearch className="h-3.5 w-3.5" />
             Egyetemi ZH-naptár
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => icsFileInputRef.current?.click()}
+            disabled={icsImporting}
+          >
+            <UploadCloud className="h-3.5 w-3.5" />
+            {icsImporting ? "Feldolgozás…" : "Naptár importálása (.ics)"}
+          </Button>
+          <input
+            ref={icsFileInputRef}
+            type="file"
+            accept=".ics,text/calendar"
+            className="hidden"
+            onChange={handleIcsFileSelected}
+          />
           <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={importing}>
             <Upload className="h-3.5 w-3.5" />
             {importing ? "Feldolgozás…" : "Órarend importálása"}
@@ -137,7 +181,9 @@ export function CalendarView() {
             A Neptunban az órarended „Tanóra” exportját (.xlsx) töltsd le, majd itt add hozzá
             az „Órarend importálása” gombbal. A ZH-kat felveheted kézzel a tárgyaknál a
             „Követelmények” alatt, vagy az „Egyetemi ZH-naptár” gombbal az egyetem
-            hivatalos ZH-naptárából, tárgykód alapján — mindkettő itt is megjelenik.
+            hivatalos ZH-naptárából, tárgykód alapján — mindkettő itt is megjelenik. Egy
+            külső (pl. egyetemi) naptár .ics fájlját is beimportálhatod a „Naptár importálása
+            (.ics)” gombbal.
           </p>
         </div>
       )}

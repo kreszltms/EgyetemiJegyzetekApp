@@ -132,6 +132,23 @@ export const NOTE_CATEGORY_LABELS: Record<NoteCategory, string> = {
   egyeb: "Egyéb",
 };
 
+/**
+ * Egy jegyzethez csatolt kép — mivel az egész alkalmazásállapot egyetlen
+ * Firestore dokumentumban tárolódik (lásd lib/cloud-sync.ts), és annak kb.
+ * 1 MB-os mérethatára van, a képeket feltöltéskor kliensoldalon
+ * (canvas-szal) tömörítjük, és data URL-ként tároljuk itt — nincs külön
+ * fájltárolás/backend.
+ */
+export interface NoteAttachment {
+  id: string;
+  /** Tömörített kép, "data:image/jpeg;base64,…" formában. */
+  dataUrl: string;
+  /** Az eredeti fájl neve, megjelenítéshez. */
+  nev: string;
+  /** A tömörített data URL hossza bájtban (becslés a UI-hoz). */
+  meret: number;
+}
+
 export interface Note {
   id: string;
   subjectId: string;
@@ -143,6 +160,12 @@ export interface Note {
   tartalom: string;
   /** Címkék "#" nélkül tárolva, pl. ["vizsgakérdés", "definíció"] */
   cimkek: string[];
+  /**
+   * Csatolt képek — opcionális, régebbi jegyzeteknél hiányozhat, ilyenkor
+   * `note.mellekletek ?? []`-ként olvasandó. Sosem `undefined`-ként írjuk
+   * (Firestore nem fogadja el undefined mezőértékként), mindig `[]`.
+   */
+  mellekletek?: NoteAttachment[];
   createdAt: string;
   updatedAt: string;
 }

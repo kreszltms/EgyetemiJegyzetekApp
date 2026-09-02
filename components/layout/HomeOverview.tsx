@@ -83,7 +83,7 @@ export function HomeOverview({ onNavigate }: { onNavigate: (n: Nezet) => void })
   }, [aktivTargyak]);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 p-8">
+    <div className="mx-auto max-w-4xl space-y-5 p-6 sm:p-8">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">
           {aktivFelev ? aktivFelev.nev : "Üdv az Egyetemi Jegyzeteknél"}
@@ -99,14 +99,52 @@ export function HomeOverview({ onNavigate }: { onNavigate: (n: Nezet) => void })
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <StatCard icon={GraduationCap} label="Aktív tárgyak" value={aktivTargyak.length} />
             <StatCard icon={FileText} label="Jegyzetek ebben a félévben" value={aktivJegyzetek.length} />
             <StatCard icon={ListChecks} label="Nyitott követelmények" value={nyitottKovetelmenyek} />
           </div>
 
+          {/* A tárgyak mindjárt a statisztikák alatt, a lap tetején
+              jelennek meg — ez a leggyakrabban keresett rész, nem szabad
+              alálegörgetni értük a többi (kevésbé gyakran nézett) widget alá. */}
           <div>
-            <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <h2 className="mb-2 text-sm font-medium text-muted-foreground">Tárgyaid</h2>
+            {aktivTargyak.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Még nincs tárgyad ebben a félévben — vedd fel a bal oldali menüben.
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
+                {aktivTargyak.map((sub) => {
+                  const Icon = SUBJECT_ICONS[sub.ikon] ?? SUBJECT_ICONS.BookOpen;
+                  return (
+                    <Card
+                      key={sub.id}
+                      className="cursor-pointer border shadow-none transition-colors hover:bg-muted/40"
+                      onClick={() => onNavigate({ tipus: "targy", subjectId: sub.id })}
+                    >
+                      <CardContent className="flex items-center gap-2.5 p-3">
+                        <div
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white"
+                          style={{ backgroundColor: sub.szin }}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-medium">{sub.nev}</div>
+                          <div className="text-xs text-muted-foreground">{sub.kod}</div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <Clock className="h-4 w-4" />
               Mai óráid
             </h2>
@@ -116,7 +154,7 @@ export function HomeOverview({ onNavigate }: { onNavigate: (n: Nezet) => void })
                 nézetben.
               </p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {maiOrak.map((item) => (
                   <Card
                     key={item.id}
@@ -130,7 +168,7 @@ export function HomeOverview({ onNavigate }: { onNavigate: (n: Nezet) => void })
                         : undefined
                     }
                   >
-                    <CardContent className="flex items-center justify-between p-3.5">
+                    <CardContent className="flex items-center justify-between p-2.5">
                       <div className="flex items-center gap-3">
                         <span
                           className="h-2 w-2 shrink-0 rounded-full"
@@ -154,21 +192,21 @@ export function HomeOverview({ onNavigate }: { onNavigate: (n: Nezet) => void })
           </div>
 
           {(hianyzasFigyelmeztetesek.length > 0 || pontozasFokusz.length > 0) && (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {hianyzasFigyelmeztetesek.length > 0 && (
                 <div>
-                  <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
                     <AlertTriangle className="h-4 w-4" />
                     Hiányzás-figyelmeztetés
                   </h2>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     {hianyzasFigyelmeztetesek.map(({ sub, status }) => (
                       <Card
                         key={sub.id}
                         className="cursor-pointer border shadow-none transition-colors hover:bg-muted/40"
                         onClick={() => onNavigate({ tipus: "targy", subjectId: sub.id })}
                       >
-                        <CardContent className="space-y-2 p-3.5">
+                        <CardContent className="space-y-1.5 p-2.5">
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-medium">{sub.nev}</span>
                             <Badge
@@ -198,18 +236,18 @@ export function HomeOverview({ onNavigate }: { onNavigate: (n: Nezet) => void })
 
               {pontozasFokusz.length > 0 && (
                 <div>
-                  <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
                     <Sparkles className="h-4 w-4" />
                     Legközelebbi jegyugrás
                   </h2>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     {pontozasFokusz.map(({ sub, summary }) => (
                       <Card
                         key={sub.id}
                         className="cursor-pointer border shadow-none transition-colors hover:bg-muted/40"
                         onClick={() => onNavigate({ tipus: "targy", subjectId: sub.id })}
                       >
-                        <CardContent className="flex items-center justify-between gap-3 p-3.5">
+                        <CardContent className="flex items-center justify-between gap-3 p-2.5">
                           <div>
                             <div className="text-sm font-medium">{sub.nev}</div>
                             <div className="text-xs text-muted-foreground">
@@ -237,7 +275,7 @@ export function HomeOverview({ onNavigate }: { onNavigate: (n: Nezet) => void })
           )}
 
           <div>
-            <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <CalendarClock className="h-4 w-4" />
               Közelgő határidők
             </h2>
@@ -246,14 +284,14 @@ export function HomeOverview({ onNavigate }: { onNavigate: (n: Nezet) => void })
                 Nincs közelgő, nyitott határidőd — szép munka!
               </p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {kozelgoHataridok.map((r) => (
                   <Card
                     key={r.id}
                     className="cursor-pointer border shadow-none transition-colors hover:bg-muted/40"
                     onClick={() => onNavigate({ tipus: "targy", subjectId: r.subjectId })}
                   >
-                    <CardContent className="flex items-center justify-between p-3.5">
+                    <CardContent className="flex items-center justify-between p-2.5">
                       <div className="flex items-center gap-3">
                         <span
                           className="h-2 w-2 shrink-0 rounded-full"
@@ -270,41 +308,6 @@ export function HomeOverview({ onNavigate }: { onNavigate: (n: Nezet) => void })
                     </CardContent>
                   </Card>
                 ))}
-              </div>
-            )}
-          </div>
-
-          <div>
-            <h2 className="mb-3 text-sm font-medium text-muted-foreground">Tárgyaid</h2>
-            {aktivTargyak.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Még nincs tárgyad ebben a félévben — vedd fel a bal oldali menüben.
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {aktivTargyak.map((sub) => {
-                  const Icon = SUBJECT_ICONS[sub.ikon] ?? SUBJECT_ICONS.BookOpen;
-                  return (
-                    <Card
-                      key={sub.id}
-                      className="cursor-pointer border shadow-none transition-colors hover:bg-muted/40"
-                      onClick={() => onNavigate({ tipus: "targy", subjectId: sub.id })}
-                    >
-                      <CardContent className="flex items-center gap-3 p-4">
-                        <div
-                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white"
-                          style={{ backgroundColor: sub.szin }}
-                        >
-                          <Icon className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium">{sub.nev}</div>
-                          <div className="text-xs text-muted-foreground">{sub.kod}</div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
               </div>
             )}
           </div>
@@ -325,7 +328,7 @@ function StatCard({
 }) {
   return (
     <Card className="border shadow-none">
-      <CardContent className="flex items-center gap-3 p-4">
+      <CardContent className="flex items-center gap-3 p-3.5">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
           <Icon className="h-4 w-4" />
         </div>

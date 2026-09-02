@@ -85,12 +85,13 @@ function cloudDocToStableJson(data: Partial<AppData> | undefined): string {
     subjects: data?.subjects ?? [],
     notes: data?.notes ?? [],
     scheduleEvents: data?.scheduleEvents ?? [],
+    celKredit: data?.celKredit ?? null,
   });
 }
 
 function localStateToStableJson(): string {
-  const { semesters, subjects, notes, scheduleEvents } = useAppStore.getState();
-  return stableStringify({ semesters, subjects, notes, scheduleEvents });
+  const { semesters, subjects, notes, scheduleEvents, celKredit } = useAppStore.getState();
+  return stableStringify({ semesters, subjects, notes, scheduleEvents, celKredit: celKredit ?? null });
 }
 
 const DEBOUNCE_MS = 900;
@@ -128,7 +129,10 @@ export function useCloudSync(uid: string | null) {
         const toPush = localStateToStableJson();
         lastSyncedRef.current = toPush;
         try {
-          const parsed = JSON.parse(toPush) as Pick<AppData, "semesters" | "subjects" | "notes" | "scheduleEvents">;
+          const parsed = JSON.parse(toPush) as Pick<
+            AppData,
+            "semesters" | "subjects" | "notes" | "scheduleEvents" | "celKredit"
+          >;
           await setDoc(docRef, {
             ...parsed,
             version: useAppStore.getState().exportData().version,
@@ -162,7 +166,7 @@ export function useCloudSync(uid: string | null) {
             try {
               const parsed = JSON.parse(json) as Pick<
                 AppData,
-                "semesters" | "subjects" | "notes" | "scheduleEvents"
+                "semesters" | "subjects" | "notes" | "scheduleEvents" | "celKredit"
               >;
               await setDoc(docRef, {
                 ...parsed,

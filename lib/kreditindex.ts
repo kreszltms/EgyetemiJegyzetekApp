@@ -30,6 +30,13 @@ export interface KreditIndexResult {
   average: number | null;
   includedCount: number;
   totalCount: number;
+  /**
+   * A ténylegesen MEGSZERZETT (teljesített) kredit összege — csak azoké a
+   * beszámítható tárgyaké, amelyeknek a becsült jegye legalább 2-es, mert a
+   * magyar felsőoktatásban elégtelen (1-es) jegyért nem jár kredit. Ez az
+   * érték hajtja a "Diplomához szükséges kredit" tervezőt.
+   */
+  earnedKredit: number;
 }
 
 export function computeKreditIndex(subjects: Subject[]): KreditIndexResult {
@@ -47,14 +54,24 @@ export function computeKreditIndex(subjects: Subject[]): KreditIndexResult {
 
   let weightedSum = 0;
   let totalKredit = 0;
+  let earnedKredit = 0;
   for (const item of items) {
     if (!item.included || item.grade === null) continue;
     weightedSum += item.grade * item.kredit;
     totalKredit += item.kredit;
+    if (item.grade >= 2) earnedKredit += item.kredit;
   }
 
   const average = totalKredit > 0 ? Math.round((weightedSum / totalKredit) * 100) / 100 : null;
   const includedCount = items.filter((i) => i.included).length;
 
-  return { items, weightedSum, totalKredit, average, includedCount, totalCount: items.length };
+  return {
+    items,
+    weightedSum,
+    totalKredit,
+    average,
+    includedCount,
+    totalCount: items.length,
+    earnedKredit,
+  };
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { CalendarDays, CalendarSearch, Trash2, Upload } from "lucide-react";
+import { CalendarDays, CalendarSearch, Download, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import { ZhNaptarImportDialog } from "@/components/calendar/ZhNaptarImportDialog
 import { useAppStore } from "@/lib/store";
 import { parseNeptunScheduleFile } from "@/lib/neptun-xlsx";
 import { buildCalendarItems, formatDateKeyHu, todayDateKey } from "@/lib/calendar-helpers";
+import { downloadIcsCalendar } from "@/lib/ics-export";
 
 export function CalendarView() {
   const scheduleEvents = useAppStore((s) => s.scheduleEvents);
@@ -75,6 +76,11 @@ export function CalendarView() {
     toast.success("Az importált órarend törölve.");
   }
 
+  function handleExportIcs() {
+    downloadIcsCalendar(allItems);
+    toast.success("Naptár exportálva (.ics) — importáld be a saját naptáralkalmazásodba.");
+  }
+
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-8">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -94,6 +100,12 @@ export function CalendarView() {
             >
               <Trash2 className="h-3.5 w-3.5" />
               Órarend törlése
+            </Button>
+          )}
+          {allItems.length > 0 && (
+            <Button variant="outline" size="sm" onClick={handleExportIcs}>
+              <Download className="h-3.5 w-3.5" />
+              Exportálás (.ics)
             </Button>
           )}
           <Button

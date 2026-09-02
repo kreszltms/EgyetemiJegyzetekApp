@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { ReminderBell } from "@/components/layout/ReminderBell";
 import { SemesterFormDialog } from "@/components/semesters/SemesterFormDialog";
 import { SubjectFormDialog } from "@/components/subjects/SubjectFormDialog";
 import { downloadJsonBackup, importJsonBackup, useAppStore } from "@/lib/store";
@@ -319,6 +320,7 @@ export function Sidebar({ nezet, onNavigate }: SidebarProps) {
       <div className="flex items-center justify-between border-t px-3 py-2.5">
         <div className="flex items-center gap-0.5">
           <ThemeToggle />
+          <ReminderBell />
           <Button
             variant="ghost"
             size="icon"

@@ -5,6 +5,8 @@ import { Archive, Award, ChevronDown, ChevronRight } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { CelKreditCard } from "@/components/kreditindex/CelKreditCard";
+import { JegytrendChart } from "@/components/kreditindex/JegytrendChart";
 import { computeKreditIndex, type KreditIndexResult } from "@/lib/kreditindex";
 import { formatGrade, GRADE_COLOR_CLASSES } from "@/lib/pontozas";
 import { useAppStore } from "@/lib/store";
@@ -40,6 +42,29 @@ export function KreditIndexView({ onNavigate }: { onNavigate: (n: Nezet) => void
   );
   const [archivumNyitva, setArchivumNyitva] = useState(false);
 
+  // A "Diplomához szükséges kredit" tervező tempó-becsléséhez: azoknak a
+  // féléveknek az átlaga, amelyekben ténylegesen szereztünk kreditet
+  // (archivált és nyitott félévek együtt — a tempó a teljes előzményből jön).
+  const atlagKreditFelevente = useMemo(() => {
+    const ertekek = felevenkent.map((f) => f.result.earnedKredit).filter((k) => k > 0);
+    if (ertekek.length === 0) return null;
+    return ertekek.reduce((sum, k) => sum + k, 0) / ertekek.length;
+  }, [felevenkent]);
+
+  // Jegytrend grafikon adatai: kronológiai sorrendben (kezdő dátum, ennek
+  // hiányában létrehozás dátuma szerint), csak azok a félévek, amelyeknek
+  // van érvényes (nem null) súlyozott átlaga.
+  const jegytrendAdatok = useMemo(() => {
+    return [...felevenkent]
+      .sort((a, b) => {
+        const aKey = a.semester.kezdoDatum ?? a.semester.createdAt;
+        const bKey = b.semester.kezdoDatum ?? b.semester.createdAt;
+        return aKey < bKey ? -1 : aKey > bKey ? 1 : 0;
+      })
+      .filter((f) => f.result.average !== null)
+      .map((f) => ({ label: f.semester.nev, value: f.result.average as number }));
+  }, [felevenkent]);
+
   return (
     <div className="mx-auto max-w-4xl space-y-8 p-8">
       <div>
@@ -50,7 +75,9 @@ export function KreditIndexView({ onNavigate }: { onNavigate: (n: Nezet) => void
         <p className="mt-1 text-sm text-muted-foreground">
           Kredit-súlyozott átlag a Pontozás kártyákon eddig beírt pontok alapján becsült
           érdemjegyekből — egy tárgy csak akkor számít bele, ha van megadva kreditértéke és
-          legalább egy pont már be van írva nála.
+          legalább egy pont már be van írva nála. A „Diplomához szükséges kredit” tervezőnél
+          csak a legalább 2-es (tehát nem elégtelen) becsült jegyű tárgyak kreditje számít
+          megszerzettnek.
         </p>
       </div>
 
@@ -60,18 +87,32 @@ export function KreditIndexView({ onNavigate }: { onNavigate: (n: Nezet) => void
         </div>
       ) : (
         <>
-          <Card className="border-none shadow-sm">
-            <CardContent className="flex flex-col items-center gap-1.5 p-8 text-center">
-              <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                Összesített kreditindex
-              </span>
-              <span className="text-5xl font-semibold tabular-nums">
-                {osszesitett.average !== null ? osszesitett.average.toFixed(2) : "—"}
-              </span>
-              <span className="text-sm text-muted-foreground">
-                {osszesitett.totalKredit} kredit alapján · {osszesitett.includedCount} /{" "}
-                {osszesitett.totalCount} tárgy számít bele
-              </span>
+          <div className="grid gap-4 md:grid-cols-2">
+            <CelKreditCard
+              earnedKredit={osszesitett.earnedKredit}
+              atlagKreditFelevente={atlagKreditFelevente}
+            />
+
+            <Card className="border-none shadow-sm">
+              <CardContent className="flex h-full flex-col items-center justify-center gap-1.5 p-6 text-center">
+                <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                  Összesített kreditindex
+                </span>
+                <span className="text-5xl font-semibold tabular-nums">
+                  {osszesitett.average !== null ? osszesitett.average.toFixed(2) : "—"}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {osszesitett.totalKredit} kredit alapján · {osszesitett.includedCount} /{" "}
+                  {osszesitett.totalCount} tárgy számít bele
+                </span>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="border shadow-none">
+            <CardContent className="p-6">
+              <h2 className="mb-4 text-sm font-medium text-foreground">Jegytrend</h2>
+              <JegytrendChart data={jegytrendAdatok} />
             </CardContent>
           </Card>
 

@@ -203,6 +203,12 @@ export interface AppData {
   /** Neptunból importált órarendi események (opcionális — régebbi
    * exportokban/felhő-dokumentumokban még nem szerepel). */
   scheduleEvents?: ScheduleEvent[];
+  /**
+   * A diplomához/oklevélhez szükséges összes kredit (a Kreditindex nézet
+   * "Diplomához szükséges kredit" tervezőjéhez) — opcionális, amíg a
+   * felhasználó be nem állítja.
+   */
+  celKredit?: number;
   /** Séma verzió a jövőbeli migrációkhoz */
   version: string;
   exportedAt?: string;

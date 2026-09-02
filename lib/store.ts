@@ -29,6 +29,11 @@ interface AppState {
   subjects: Subject[];
   notes: Note[];
   scheduleEvents: ScheduleEvent[];
+  /** Diplomához szükséges összes kredit — ld. types/index.ts AppData.celKredit. */
+  celKredit?: number;
+
+  // ---- Diplomához szükséges kredit ------------------------------------------
+  setCelKredit: (value: number | undefined) => void;
 
   // ---- Félévek ------------------------------------------------------------
   addSemester: (data: Pick<Semester, "nev" | "kezdoDatum" | "zaroDatum">) => string;
@@ -105,6 +110,9 @@ export const useAppStore = create<AppState>()(
       subjects: [],
       notes: [],
       scheduleEvents: [],
+      celKredit: undefined,
+
+      setCelKredit: (value) => set({ celKredit: value }),
 
       // ---- Félévek ----------------------------------------------------------
       addSemester: (data) => {
@@ -376,12 +384,13 @@ export const useAppStore = create<AppState>()(
 
       // ---- Import / Export ----------------------------------------------------
       exportData: () => {
-        const { semesters, subjects, notes, scheduleEvents } = get();
+        const { semesters, subjects, notes, scheduleEvents, celKredit } = get();
         return {
           semesters,
           subjects,
           notes,
           scheduleEvents,
+          celKredit,
           version: DATA_SCHEMA_VERSION,
           exportedAt: new Date().toISOString(),
         };
@@ -411,6 +420,8 @@ export const useAppStore = create<AppState>()(
             scheduleEvents: Array.isArray(parsed.scheduleEvents)
               ? parsed.scheduleEvents
               : [],
+            celKredit:
+              typeof parsed.celKredit === "number" ? parsed.celKredit : undefined,
           });
           return { success: true };
         } catch {
@@ -421,7 +432,8 @@ export const useAppStore = create<AppState>()(
         }
       },
 
-      resetAll: () => set({ semesters: [], subjects: [], notes: [], scheduleEvents: [] }),
+      resetAll: () =>
+        set({ semesters: [], subjects: [], notes: [], scheduleEvents: [], celKredit: undefined }),
     }),
     {
       name: STORAGE_KEY,

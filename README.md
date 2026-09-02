@@ -91,6 +91,28 @@ mindkettő hiba és figyelmeztetés nélkül fut.
   félévek maradjanak fókuszban. Az archivált félév adata nem vész el —
   bármikor visszaállítható, és a kreditindex-számításba is beleszámít. Ld.
   lentebb a [Félévek archiválása](#félévek-archiválása) szakaszt.
+- **Diplomához szükséges kredit-tervező** — a Kreditindex nézeten megadható,
+  hány kredit kell összesen az okleveledhez; onnantól egy sáv mutatja, hol
+  tartasz, és a félévenkénti tempód alapján durván megbecsüli, kb. hány
+  féléved van még hátra. Ld. lentebb a
+  [Diplomához szükséges kredit-tervező](#diplomához-szükséges-kredit-tervező)
+  szakaszt.
+- **Jegytrend** — a Kreditindex nézeten egy grafikon mutatja, hogyan alakult
+  a kredit-súlyozott féléves átlagod időben, hogy lásd a tendenciát, nem
+  csak egy pillanatnyi számot.
+- **.ics naptár-export** — a Naptár nézeten egy kattintással exportálhatod az
+  órarended és a nyitott határidőidet egy szabványos `.ics` fájlba, amit
+  beimportálhatsz a saját (Google/Apple/Outlook) naptáradba. Ld. lentebb az
+  [.ics naptár-export](#ics-naptár-export) szakaszt.
+- **Emlékeztetők közelgő határidőkre** — a sidebar alján egy haranggal
+  bekapcsolható böngésző-emlékeztető: amíg az app nyitva van (vagy fókuszba
+  kerül), jelez, ha van ma/holnap esedékes, még nyitott határidőd. Ld.
+  lentebb az [Emlékeztetők közelgő határidőkre](#emlékeztetők-közelgő-határidőkre)
+  szakaszt.
+- **Telepíthető (PWA)** — az app manifestje és egy alap service worker miatt
+  asztali gépről/telefonról telepíthető, saját ikonnal, és a korábban már
+  megnyitott oldalak internet nélkül is betöltődnek. Ld. lentebb a
+  [Telepíthető alkalmazás (PWA)](#telepíthető-alkalmazás-pwa) szakaszt.
 
 ## Felhős szinkronizáció beállítása (Firebase)
 
@@ -297,6 +319,85 @@ egy lezárt félév **archiválható**:
   félévek" szakasz alatt, de az **Összesített kreditindexbe** továbbra is
   beleszámítanak — archiválás csak a listázást, nem a számítást
   befolyásolja.
+
+## Diplomához szükséges kredit-tervező
+
+A Kreditindex nézet tetején, az összesített kreditindex mellett egy kártya
+segít nyomon követni, hol tartasz a diplomához vezető úton:
+
+- Első alkalommal add meg, hány kredit kell összesen az okleveledhez (pl.
+  180 vagy 210 — az intézményed/szakod mintatanterve alapján), a
+  "Cél kredit beállítása" gombbal. Bármikor módosítható a kártya jobb felső
+  sarkában lévő ceruza ikonnal.
+- A kártya a ténylegesen **megszerzett** kreditedet viszonyítja ehhez a
+  célhoz. Egy tárgy kreditje csak akkor számít megszerzettnek, ha a
+  Pontozásból becsült aktuális jegye **legalább 2-es** — a magyar
+  felsőoktatásban elégtelen (1-es) jegyért ugyanis nem jár kredit, még akkor
+  sem, ha a tárgynak egyébként van megadva kreditértéke.
+- A sáv alatt egy durva becslés is megjelenik, kb. hány félév van hátra a
+  jelenlegi tempód mellett (a korábbi féléveid átlagos megszerzett kreditje
+  alapján számolva). Ez csak tájékoztató jellegű — nem ismeri a
+  mintatanterved pontos kötelező/kötelezően választandó/szabadon választható
+  kreditkereteit, egyetlen összesített célszámmal dolgozik.
+
+## Jegytrend
+
+Ugyanezen a nézeten, közvetlenül a kártyák alatt egy grafikon mutatja, hogyan
+alakult a kredit-súlyozott féléves átlagod időrendi sorrendben — így nem csak
+egy pillanatnyi számot látsz, hanem a tendenciát is. Legalább két félévnyi
+beszámítható átlag szükséges hozzá; addig egy rövid üzenet jelzi, hogy még
+nincs elég adat.
+
+## .ics naptár-export
+
+A Naptár nézet tetején az **"Exportálás (.ics)"** gombbal egy szabványos
+iCalendar (`.ics`) fájlba mentheted a naptáradat — az importált órarended
+(Neptunból) és az összes nyitott (még nem teljesített), határidős
+követelményed (ZH, beadandó, vizsga) egyben. A letöltött fájlt bármelyik
+naptáralkalmazásba (Google Naptár, Apple Naptár, Outlook stb.) beimportálva
+onnantól ott is látod ezeket az eseményeket. A tanórák a készülék saját
+időzónájában jelennek meg, a határidők egész napos eseményként.
+
+Mivel ez egy egyszeri export (nem élő feed), ha később módosítod az
+órarended vagy a határidőidet, újra le kell töltened és be kell importálnod
+a friss `.ics` fájlt.
+
+## Emlékeztetők közelgő határidőkre
+
+A sidebar alján, a téma-váltó gomb mellett egy harang ikon kapcsolja be/ki a
+böngésző-emlékeztetőket. Bekapcsoláskor a böngésződ rákérdez, engedélyezed-e
+az értesítéseket ennek az oldalnak — ha igen, onnantól minden alkalommal,
+amikor megnyitod az appot (vagy visszaváltasz rá egy másik fülről), az app
+ellenőrzi, van-e ma vagy holnap esedékes, még nyitott határidőd, és ha igen,
+egy böngésző-értesítéssel jelez rá (naponta legfeljebb egyszer tételenként,
+hogy ne kapj duplán ugyanarra emlékeztetőt).
+
+Fontos korlát: mivel ez egy 100%-ban kliensoldali, backend/push-szerver
+nélküli app, az emlékeztető csak akkor tud megjelenni, ha az app ténylegesen
+meg van nyitva (vagy legalább egy háttérfülön fut) a böngészőben — nincs
+mögötte szerver, ami akkor is tudna push-t küldeni, ha be van zárva az
+oldal. Ha ez a korlát zavaró, a fentebbi [.ics naptár-export](#ics-naptár-export)
+funkcióval a határidőid átvihetők egy olyan naptáralkalmazásba, amelyik
+tud valódi push-emlékeztetőt küldeni.
+
+## Telepíthető alkalmazás (PWA)
+
+Az app egy Web App Manifesttel és egy alap service workerrel rendelkezik,
+így telepíthető:
+
+- **Asztali Chrome/Edge**: a címsorban megjelenő telepítés-ikonnal, vagy a
+  böngésző menüjéből ("Alkalmazás telepítése").
+- **Android**: a Chrome "Kezdőképernyőhöz adás" / "Alkalmazás telepítése"
+  menüpontjával.
+- **iOS Safari**: a Megosztás menü "Kezdőképernyőhöz adás" pontjával (ekkor
+  saját ikonnal, teljes képernyős módban indul, böngészősáv nélkül).
+
+Telepítve az app saját ablakban/ikonnal fut. A service worker emellett alap
+offline-cache-elést is ad: amit egyszer már megnyitottál online, az
+internet nélkül is betöltődik (a mentés/felhős szinkron természetesen csak
+online működik). Ez fejlesztői módban (`next dev`) szándékosan ki van
+kapcsolva, hogy ne zavarja a hot-reloadot — csak éles (`next build` +
+`next start`, illetve a Vercelre telepített verzió) build-ben aktiválódik.
 
 ## Élesítés (deploy) Vercelre — hogy tényleg bárhonnan elérd
 

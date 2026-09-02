@@ -20,6 +20,7 @@ import {
   ImagePlus,
   Loader2,
   History,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -33,6 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 import { MarkdownContent } from "@/components/notes/MarkdownContent";
 import { NoteVersionHistoryDialog } from "@/components/notes/NoteVersionHistoryDialog";
@@ -97,6 +99,7 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
   const [tagInput, setTagInput] = useState(note?.cimkek.map((t) => `#${t}`).join(" ") ?? "");
   const [attachments, setAttachments] = useState<NoteAttachment[]>(note?.mellekletek ?? []);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [previewAttachment, setPreviewAttachment] = useState<NoteAttachment | null>(null);
   const [savedNoteId, setSavedNoteId] = useState<string | undefined>(note?.id);
   const [lastSavedAt, setLastSavedAt] = useState<Date | undefined>(
     note ? new Date(note.updatedAt) : undefined
@@ -553,33 +556,33 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
         {attachments.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {attachments.map((att) => (
-              <a
+              <div
                 key={att.id}
-                href={att.dataUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="group relative block h-20 w-20 shrink-0 overflow-hidden rounded-md border"
-                title={`${att.nev} (${formatAttachmentSize(att.meret)}) — megnyitás teljes méretben`}
+                className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-md border"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element -- data URL, nem Next Image-kompatibilis forrás */}
-                <img
-                  src={att.dataUrl}
-                  alt={att.nev}
-                  className="h-full w-full object-cover"
-                />
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    removeAttachment(att.id);
-                  }}
+                  onClick={() => setPreviewAttachment(att)}
+                  aria-label={`${att.nev} megnyitása teljes méretben`}
+                  title={`${att.nev} (${formatAttachmentSize(att.meret)}) — megnyitás teljes méretben`}
+                  className="block h-full w-full"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- data URL, nem Next Image-kompatibilis forrás */}
+                  <img
+                    src={att.dataUrl}
+                    alt={att.nev}
+                    className="h-full w-full object-cover"
+                  />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeAttachment(att.id)}
                   aria-label={`${att.nev} melléklet eltávolítása`}
-                  className="absolute top-1 right-1 rounded-full bg-black/60 p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                  className="absolute top-1 right-1 rounded-full bg-black/60 p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
                 >
                   <X className="h-3 w-3" />
                 </button>
-              </a>
+              </div>
             ))}
           </div>
         )}
@@ -632,6 +635,49 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
           onRestore={handleRestoreVersion}
         />
       )}
+
+      {/*
+        A melléklet-előnézetet SZÁNDÉKOSAN egy in-app lightboxban (Dialog)
+        jelenítjük meg, nem `<a href={dataUrl} target="_blank">`-kal —
+        Chrome (és a legtöbb Chromium-alapú böngésző) biztonsági okból
+        letiltja a data: URL-re való közvetlen, link-kattintásból indított
+        új lapos navigációt, ami néma, üres lapot eredményezett volna.
+      */}
+      <Dialog
+        open={!!previewAttachment}
+        onOpenChange={(v) => !v && setPreviewAttachment(null)}
+      >
+        <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-3xl">
+          <DialogTitle className="sr-only">
+            {previewAttachment?.nev ?? "Melléklet előnézete"}
+          </DialogTitle>
+          {previewAttachment && (
+            <>
+              <div className="min-h-0 flex-1 overflow-auto rounded-md bg-muted/30">
+                {/* eslint-disable-next-line @next/next/no-img-element -- data URL, nem Next Image-kompatibilis forrás */}
+                <img
+                  src={previewAttachment.dataUrl}
+                  alt={previewAttachment.nev}
+                  className="mx-auto max-h-[70vh] w-auto object-contain"
+                />
+              </div>
+              <div className="flex items-center justify-between gap-2 pt-1">
+                <span className="truncate text-sm text-muted-foreground">
+                  {previewAttachment.nev} ({formatAttachmentSize(previewAttachment.meret)})
+                </span>
+                <a
+                  href={previewAttachment.dataUrl}
+                  download={previewAttachment.nev}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium hover:bg-muted"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Letöltés
+                </a>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

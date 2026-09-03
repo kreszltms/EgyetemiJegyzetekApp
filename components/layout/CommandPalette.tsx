@@ -27,13 +27,41 @@ interface ResultItem {
   key: string;
   group: "Nézetek" | "Tárgyak" | "Jegyzetek";
   label: string;
-  sublabel?: string;
+  sublabel?: React.ReactNode;
   icon: React.ReactNode;
   onSelect: () => void;
 }
 
 const MAX_SUBJECTS = 6;
 const MAX_NOTES = 6;
+
+/** Ennyi karaktert mutatunk a találat előtt/után a jegyzet-tartalom
+ * kiemelt részletében (snippet). */
+const SNIPPET_RADIUS = 45;
+
+/**
+ * Kivágja a jegyzet tartalmából a keresett szót körülölelő szövegrészletet,
+ * a találatot külön darabban adva vissza (hogy kiemelhető legyen a UI-ban).
+ * A whitespace/sortörés egy szóközre van összevonva, hogy egysoros,
+ * olvasható előnézet legyen — így az látszik, MELYIK mondatban van a
+ * találat, nemcsak az, hogy a jegyzet valahol tartalmazza a szót.
+ */
+function buildContentSnippet(
+  content: string,
+  query: string
+): { before: string; match: string; after: string } | null {
+  if (!query) return null;
+  const flat = content.replace(/\s+/g, " ").trim();
+  const idx = flat.toLowerCase().indexOf(query);
+  if (idx === -1) return null;
+  const start = Math.max(0, idx - SNIPPET_RADIUS);
+  const end = Math.min(flat.length, idx + query.length + SNIPPET_RADIUS);
+  return {
+    before: (start > 0 ? "…" : "") + flat.slice(start, idx),
+    match: flat.slice(idx, idx + query.length),
+    after: flat.slice(idx + query.length, end) + (end < flat.length ? "…" : ""),
+  };
+}
 
 interface CommandPaletteProps {
   open: boolean;
@@ -125,13 +153,30 @@ export function CommandPalette({ open, onOpenChange, onNavigate }: CommandPalett
       : [...notes].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
     for (const note of matchedNotes.slice(0, MAX_NOTES)) {
       const subject = subjects.find((s) => s.id === note.subjectId);
+      const meta = [subject?.nev, NOTE_CATEGORY_LABELS[note.tipus], formatDateHu(note.datum)]
+        .filter(Boolean)
+        .join(" · ");
+      // Ha a cím maga is egyezik, a metaadat-sor (tárgy/típus/dátum)
+      // marad — az látszik, hogy MELYIK jegyzet ez. Ha viszont a cím NEM
+      // egyezik, csak a tartalom, akkor a metaadat helyett a találatot
+      // körülölelő szövegrészletet mutatjuk, hogy kiderüljön, miért ez a
+      // jegyzet jött fel a keresésre.
+      const titleMatches = Boolean(q) && note.cim.toLowerCase().includes(q);
+      const snippet = q && !titleMatches ? buildContentSnippet(note.tartalom, q) : null;
+
       items.push({
         key: `jegyzet-${note.id}`,
         group: "Jegyzetek",
         label: note.cim,
-        sublabel: [subject?.nev, NOTE_CATEGORY_LABELS[note.tipus], formatDateHu(note.datum)]
-          .filter(Boolean)
-          .join(" · "),
+        sublabel: snippet ? (
+          <>
+            {snippet.before}
+            <mark className="rounded-sm bg-primary/25 text-foreground">{snippet.match}</mark>
+            {snippet.after}
+          </>
+        ) : (
+          meta
+        ),
         icon: <NotebookText className="h-4 w-4" />,
         onSelect: () => goToNote(note.subjectId, note.id),
       });

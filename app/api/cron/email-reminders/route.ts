@@ -1,3 +1,5 @@
+import { timingSafeEqual } from "node:crypto";
+
 import { NextResponse } from "next/server";
 
 import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
@@ -33,6 +35,24 @@ import type { AppData, Subject } from "@/types";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/**
+ * Konstans idejű string-összehasonlítás — sima `===` esetén az elágazás
+ * (és így a válaszidő) az első eltérő karakterig tartó egyezés hosszától
+ * függ, ami elméletileg lehetővé tenné a CRON_SECRET karakterenkénti
+ * "kitalálását" mérési (timing) támadással. `timingSafeEqual` mindig
+ * ugyanannyi ideig fut, függetlenül attól, hol tér el a két string.
+ */
+function safeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  // A timingSafeEqual megköveteli az azonos hosszt — ha eltér, biztosan nem
+  // egyezik, de a `false`-t is konstans idő helyett rögtön adjuk vissza,
+  // mert ez az ág maga csak a SECRET HOSSZÁT árulná el (ami nem titok: a
+  // .env.local.example is jelzi, hogy tetszőleges hosszú string ajánlott).
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
+}
+
 export async function GET(request: Request) {
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) {
@@ -41,8 +61,8 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${cronSecret}`) {
+  const authHeader = request.headers.get("authorization") ?? "";
+  if (!safeEqual(authHeader, `Bearer ${cronSecret}`)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

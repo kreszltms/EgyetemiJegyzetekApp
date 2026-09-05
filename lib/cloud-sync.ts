@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useSyncExternalStore } from "react";
 import { doc, onSnapshot, serverTimestamp, setDoc, type Unsubscribe } from "firebase/firestore";
+import { toast } from "sonner";
 
 import { getFirebaseDb } from "@/lib/firebase";
-import { useAppStore } from "@/lib/store";
+import { downloadConflictBackup, useAppStore } from "@/lib/store";
 import type { AppData } from "@/types";
 
 // ============================================================================
@@ -26,6 +27,16 @@ import type { AppData } from "@/types";
 // kulcsú) JSON string-et hasonlítunk össze — ha a bejövő felhő-adat
 // megegyezik azzal, amit legutóbb mi magunk küldtünk/kaptunk, nem csinálunk
 // semmit.
+//
+// Szinkron-ütközés kezelése: ha KÉT eszközön (pl. telefonon és laptopon) is
+// dolgozol egyszerre, előfordulhat, hogy itt van még el nem küldött helyi
+// módosítás (a 900ms-es debounce miatt), miközben egy MÁSIK eszköz gyorsabb
+// volt, és már felküldte a sajátját. Enélkül a lenti isSyncConflict()
+// ellenőrzés nélkül a később beérkező távoli verzió csendben felülírná a
+// helyi, még el nem küldött változtatásaidat — ez néma adatvesztés lenne.
+// Ezért ütközés esetén a helyi (vesztes) oldalt előbb letöltjük biztonsági
+// mentésként (lib/store.ts downloadConflictBackup), és értesítjük a
+// felhasználót, mielőtt alkalmaznánk a távoli verziót.
 // ============================================================================
 
 type SyncStatus = "idle" | "syncing" | "synced" | "error";
@@ -77,6 +88,30 @@ function canonicalize(value: unknown): unknown {
 
 function stableStringify(value: unknown): string {
   return JSON.stringify(canonicalize(value));
+}
+
+/**
+ * Eldönti, hogy egy beérkező távoli (Firestore) állapot ÜTKÖZIK-e a még el
+ * nem küldött helyi módosításokkal. Szándékosan tiszta függvény (nincs
+ * mellékhatása, nem olvas Firestore-t/store-t), hogy a store és a Firestore
+ * SDK bekötése nélkül, önmagában is egyszerűen tesztelhető legyen — lásd
+ * tests/lib/cloud-sync.test.ts.
+ *
+ * Ütközés akkor áll fenn, ha (1) a helyi állapot eltér az utoljára
+ * szinkronizált állapottól — vagyis van még el nem küldött helyi
+ * módosítás —, ÉS (2) a most beérkező távoli állapot MÁS, mint ez a helyi
+ * állapot. Ha a helyi állapot "tiszta" (nincs el nem küldött módosítás),
+ * az egy normál, konfliktusmentes távoli frissítés, nem ütközés.
+ */
+export function isSyncConflict(params: {
+  remoteJson: string;
+  localJson: string;
+  lastSyncedJson: string;
+}): boolean {
+  const { remoteJson, localJson, lastSyncedJson } = params;
+  const hasUnsavedLocalChanges = localJson !== lastSyncedJson;
+  const remoteDiffersFromLocal = remoteJson !== localJson;
+  return hasUnsavedLocalChanges && remoteDiffersFromLocal;
 }
 
 function cloudDocToStableJson(data: Partial<AppData> | undefined): string {
@@ -199,6 +234,22 @@ export function useCloudSync(uid: string | null) {
         // vagy egy másik eszközön történt valódi változás.
         const json = cloudDocToStableJson(snap.data() as Partial<AppData> | undefined);
         if (json === lastSyncedRef.current) return;
+
+        const localJson = localStateToStableJson();
+        if (isSyncConflict({ remoteJson: json, localJson, lastSyncedJson: lastSyncedRef.current })) {
+          // A távoli (másik eszközön mentett) állapot és az itt még el nem
+          // küldött helyi módosítások eltérnek — mielőtt a távoli verziót
+          // alkalmaznánk (és ezzel felülírnánk a helyit), a helyi oldalt
+          // biztonsági mentésként letöltjük, hogy semmi ne vesszen el
+          // nyomtalanul.
+          downloadConflictBackup(useAppStore.getState().exportData());
+          toast.warning("Szinkron-ütközés történt", {
+            description:
+              "Egy másik eszközön is módosítottad az adatokat, miközben itt is dolgoztál. A másik eszköz verziója lett érvényben — a saját, itt el nem küldött változtatásaid nem vesztek el, egy \"uninotes-utkozes-mentes-…\" fájlba letöltve megtalálod a Letöltések mappában, és a sidebar \"Adatok importálása\" gombjával tudod visszatölteni, ha szükséged van rá.",
+            duration: 20000,
+          });
+        }
+
         lastSyncedRef.current = json;
         useAppStore.getState().importData(json);
         setStatus("synced");

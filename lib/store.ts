@@ -592,21 +592,40 @@ export const useAppStore = create<AppState>()(
 // Ezeket a komponensek hívják, a böngésző File API-ját használva.
 // ============================================================================
 
-/** Letölti az aktuális adatokat "uninotes-mentes-<datum>.json" néven */
-export function downloadJsonBackup() {
-  const data = useAppStore.getState().exportData();
+/** Egy AppData pillanatképet JSON fájlként letölt — közös alap a normál
+ * "Biztonsági mentés" gombhoz ÉS a szinkron-ütközés esetén automatikusan
+ * mentett verzióhoz (lásd lib/cloud-sync.ts) is. */
+function triggerJsonDownload(data: AppData, filenamePrefix: string) {
   const blob = new Blob([JSON.stringify(data, null, 2)], {
     type: "application/json",
   });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   const datePart = new Date().toISOString().slice(0, 10);
+  const timePart = new Date().toTimeString().slice(0, 8).replace(/:/g, "-");
   a.href = url;
-  a.download = `uninotes-mentes-${datePart}.json`;
+  a.download = `${filenamePrefix}-${datePart}-${timePart}.json`;
   document.body.appendChild(a);
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+/** Letölti az aktuális adatokat "uninotes-mentes-<datum>-<ido>.json" néven */
+export function downloadJsonBackup() {
+  triggerJsonDownload(useAppStore.getState().exportData(), "uninotes-mentes");
+}
+
+/**
+ * Egy MÁR ELKÉSZÍTETT AppData pillanatképet tölt le (nem az aktuális store
+ * állapotot olvassa újra) — a felhő-szinkron (lib/cloud-sync.ts) hívja
+ * akkor, amikor egy másik eszközön történt módosítás felülírná az itt még
+ * el nem küldött helyi változtatásokat. Így egy szinkron-ütközés esetén a
+ * "vesztes" oldal sosem vész el nyomtalanul, hanem egy fájlba kimentve
+ * megtalálható a Letöltések mappában.
+ */
+export function downloadConflictBackup(data: AppData) {
+  triggerJsonDownload(data, "uninotes-utkozes-mentes");
 }
 
 /** Beolvas egy File objektumot (pl. <input type="file">-ból) és importálja */

@@ -186,7 +186,11 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
   }
 
   // ---- Képmelléklet feltöltése -------------------------------------------
-  async function handleAttachmentFiles(files: FileList | null) {
+  // A `files` paraméter FileList (fájlválasztó <input>) VAGY sima File[]
+  // tömb is lehet (vágólap-beillesztésnél, lásd handlePasteAttachment) —
+  // mindkettő tömbösíthető Array.from()-nal, így egy közös függvény
+  // szolgálja ki mindkét belépési pontot.
+  async function handleAttachmentFiles(files: FileList | File[] | null) {
     if (!files || files.length === 0) return;
     const remaining = MAX_ATTACHMENTS_PER_NOTE - attachments.length;
     if (remaining <= 0) {
@@ -208,6 +212,31 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
 
   function removeAttachment(id: string) {
     setAttachments((prev) => prev.filter((a) => a.id !== id));
+  }
+
+  // A szerkesztő mezőbe vágólapról beillesztett képek kigyűjtése és
+  // csatolása. Ha a vágólapon nincs kép (csak szöveg), a függvény nem hív
+  // preventDefault-ot, így a böngésző natív szöveg-beillesztése zavartalanul
+  // lefut — csak akkor "vesszük át" az eseményt, ha tényleg van benne kép.
+  function handlePasteAttachment(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const items = e.clipboardData?.items;
+    if (!items || items.length === 0) return;
+
+    const imageFiles: File[] = [];
+    for (const item of Array.from(items)) {
+      if (item.kind === "file" && item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) imageFiles.push(file);
+      }
+    }
+    if (imageFiles.length === 0) return;
+
+    e.preventDefault();
+    if (attachments.length >= MAX_ATTACHMENTS_PER_NOTE) {
+      toast.error(`Legfeljebb ${MAX_ATTACHMENTS_PER_NOTE} kép csatolható egy jegyzethez.`);
+      return;
+    }
+    handleAttachmentFiles(imageFiles);
   }
 
   // ---- Markdown gyorsgombok: szintaxis beszúrása a kurzor pozíciójába ----
@@ -403,7 +432,7 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
               variant="ghost"
               size="icon"
               className="h-8 w-8"
-              title="Kép csatolása"
+              title="Kép csatolása (vagy illessz be egyet Ctrl+V-vel a szerkesztőbe)"
               aria-label="Kép csatolása"
               disabled={editingDisabled || uploadingAttachment || attachments.length >= MAX_ATTACHMENTS_PER_NOTE}
               onClick={() => attachmentInputRef.current?.click()}
@@ -513,7 +542,8 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
                 ref={textareaRef}
                 value={tartalom}
                 onChange={(e) => setTartalom(e.target.value)}
-                placeholder="Kezdd el írni a jegyzetet… (Markdown formázás támogatott)"
+                onPaste={handlePasteAttachment}
+                placeholder="Kezdd el írni a jegyzetet… (Markdown formázás támogatott, kép Ctrl+V-vel is beilleszthető)"
                 aria-label="Jegyzet tartalma (Markdown)"
                 className={cn(
                   "flex-1 resize-none text-[15px] leading-relaxed shadow-none",

@@ -7,7 +7,12 @@
 
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
-import { initializeFirestore, type Firestore } from "firebase/firestore";
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  type Firestore,
+} from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -51,12 +56,44 @@ export function getFirebaseAuth(): Auth {
  * Lazy Firestore példány. `ignoreUndefinedProperties: true`, mert az
  * adatmodellben sok opcionális mező van (pl. `hatarido?`), amit a Firestore
  * SDK `undefined` értékkel nem fogadna el.
+ *
+ * TARTÓS (IndexedDB-alapú) HELYI CACHE: enélkül a Firestore SDK alapból
+ * csak MEMÓRIÁBAN tartja a még el nem küldött (offline közben keletkezett)
+ * írásokat — ha a felhasználó rossz net mellett jegyzetel, majd bezárja
+ * vagy újratölti a lapot, mielőtt visszajönne a kapcsolat, ez a még el nem
+ * küldött módosítás nyomtalanul elveszne. A `persistentLocalCache` ezt egy
+ * IndexedDB-be írt, lap-újratöltést is túlélő várólistával oldja meg.
+ *
+ * (A `localCache` mezőnek adjuk át a `persistentLocalCache()` eredményét.)
+ *
+ * `persistentMultipleTabManager()` kell sima (alapértelmezett)
+ * egy-fülös kezelő helyett, mert ha a felhasználó UGYANABBAN a
+ * böngészőben két fülön is nyitva tartja az appot, anélkül a MÁSODIK fül
+ * csendben visszaesne memória-only módba (mivel csak egy fül birtokolhatja
+ * az IndexedDB-t egyszerre) — ez pont azt a rést hagyná nyitva, amit itt be
+ * akarunk zárni.
+ *
+ * Ha a tartós cache bekérése bármiért hibázna (pl. Safari privát
+ * böngészés, ahol az IndexedDB korlátozott/nem elérhető), a Firestore SDK
+ * ezt jellemzően egy konzol-figyelmeztetéssel, csendben memória-cache-re
+ * visszaesve kezeli — de a try/catch itt egy plusz védőháló arra az esetre,
+ * ha maga az `initializeFirestore` hívás dobna (pl. nem-böngésző
+ * környezetben, ahol a `persistentLocalCache` dokumentáltan nem
+ * támogatott), hogy az app ilyenkor is legalább memória-cache-sel tovább
+ * fusson ahelyett, hogy elszállna.
  */
 export function getFirebaseDb(): Firestore {
   if (!dbInstance) {
-    dbInstance = initializeFirestore(ensureApp(), {
-      ignoreUndefinedProperties: true,
-    });
+    try {
+      dbInstance = initializeFirestore(ensureApp(), {
+        ignoreUndefinedProperties: true,
+        localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+      });
+    } catch {
+      dbInstance = initializeFirestore(ensureApp(), {
+        ignoreUndefinedProperties: true,
+      });
+    }
   }
   return dbInstance;
 }

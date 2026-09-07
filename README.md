@@ -443,6 +443,27 @@ kiválasztottra, `Esc`-kel zárhatod be. Ha egy tárgy egy nem az aktív
 félévedben van, a kiválasztás automatikusan azt a félévet is aktívvá teszi,
 hogy a sidebar és a tárgy-nézet konzisztens maradjon.
 
+## Mentés a jegyzetszerkesztőben
+
+A jegyzetszerkesztő **nem ment automatikusan**. Amíg a "Mentés" gombra nem
+kattintasz, a szöveg, a cím, a címkék és a csatolt/törölt képek is csak a
+szerkesztő saját, ideiglenes állapotában élnek — semmi nem kerül be a
+jegyzetbe (és így a felhős szinkronba sem) magától.
+
+Ez szándékos: korábban egy rövid (700ms-es) automentés futott minden
+gépelés/módosítás után, ami azt eredményezte, hogy egy véletlenül törölt
+kép a "Mégse" gombra kattintva **is törölve maradt** — az automentés már
+lefutott, mire a kattintás megtörtént. Az explicit mentés ezt kizárja.
+
+A lábléc mindig mutatja az aktuális állapotot:
+- **"Nem mentett módosítások"** (sárga jelzéssel) — van olyan változtatás,
+  ami még nincs elmentve.
+- **"Mentve HH:MM-kor"** — minden el van mentve.
+
+Ha el nem mentett módosítással próbálod bezárni a szerkesztőt (a "Mégse"
+gombbal vagy a jobb felső X-szel), egy megerősítő ablak rákérdez, mielőtt
+véglegesen elvetné a változtatásokat.
+
 ## Jegyzet-mellékletek
 
 A jegyzetszerkesztő eszköztárában a kép ikonra kattintva (vagy a
@@ -469,12 +490,13 @@ egy **"Visszaállítás"** gombbal. A visszaállítás nem visszafordíthatatlan
 a visszaállítás előtti állapot is automatikusan bekerül egy új
 pillanatképként, tehát mindig van visszaút.
 
-**Mikor készül új pillanatkép:** a szerkesztő 700ms-es debounce-szal
-automatikusan ment gépelés közben — enélkül a hűtési idő nélkül minden
-apró automentés külön verziót hozna létre, és az előzmények lista
-gyakorlatilag egy gépelés közbeni undo-stack lenne, nem egy áttekinthető
-napló. Ezért az app legfeljebb **5 percenként** vesz fel egy új
-pillanatképet (a visszaállítás művelete ez alól kivétel — az mindig
+**Mikor készül új pillanatkép:** a szerkesztő NEM ment automatikusan —
+csak az explicit **"Mentés"** gombra kattintva kerül be bármi is a
+jegyzetbe (lásd lent, "Mentés csak explicit gombnyomásra"). Ha rövid időn
+belül többször is mentesz (pl. gyors, egymás utáni javításokat), az app
+legfeljebb **5 percenként** vesz fel egy új pillanatképet, hogy az
+előzmények lista ne teljen meg zajos, egymáshoz nagyon hasonló
+állapotokkal (a visszaállítás művelete ez alól kivétel — az mindig
 elmenti az aktuális állapotot, a hűtési időtől függetlenül).
 
 **Korlátok:** jegyzetenként legfeljebb **15 korábbi verzió** tárolódik — ha

@@ -36,13 +36,14 @@ import type { ParsedScheduleEvent } from "@/lib/neptun-xlsx";
 const STORAGE_KEY = "egyetemi-jegyzetek-storage";
 
 /**
- * Egy jegyzet szerkesztése közben a NoteEditor 700ms-es debounce-szal
- * automatikusan ment (lásd components/notes/NoteEditor.tsx) — enélkül a
- * hűtési idő nélkül MINDEN automentés külön verziót hozna létre, és a
- * "verziótörténet" gyakorlatilag egy gépelés közbeni undo-stack lenne, nem
- * használható áttekintés a korábbi állapotokról. Ezért csak akkor veszünk
- * fel új pillanatképet, ha az utolsó óta legalább ennyi idő eltelt (vagy
- * még nincs egy sem).
+ * A NoteEditor csak explicit "Mentés" gombra hív updateNote-ot (nincs
+ * automentés — lásd components/notes/NoteEditor.tsx handleManualSave), de
+ * a felhasználó rövid időn belül több alkalommal is rákattinthat (pl.
+ * gyors, egymás utáni kis javítások mentése) — enélkül a hűtési idő nélkül
+ * minden ilyen mentés külön verziót hozna létre, és a "verziótörténet"
+ * gyakorlatilag zajos, alig áttekinthető lista lenne. Ezért csak akkor
+ * veszünk fel új pillanatképet, ha az utolsó óta legalább ennyi idő eltelt
+ * (vagy még nincs egy sem).
  */
 const NOTE_VERSION_COOLDOWN_MS = 5 * 60 * 1000;
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ElementType } from "react";
+import { useMemo, useRef, useState, type ElementType } from "react";
 import {
   Bold,
   Italic,
@@ -35,6 +35,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 import { MarkdownContent } from "@/components/notes/MarkdownContent";
 import { NoteVersionHistoryDialog } from "@/components/notes/NoteVersionHistoryDialog";
@@ -67,7 +77,9 @@ import { cn, parseTags, todayIso } from "@/lib/utils";
 
 interface NoteEditorProps {
   subjectId: string;
-  /** Ha meg van adva, szerkesztő módban nyílik meg, és automatikusan ment */
+  /** Ha meg van adva, szerkesztő módban nyílik meg (meglévő jegyzet
+   * szerkesztése) — a mentés ekkor is csak az explicit "Mentés" gombra
+   * történik, lásd handleManualSave. */
   note?: Note;
   onClose: () => void;
   onSaved?: (note: Note) => void;
@@ -108,8 +120,8 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
   const [viewMode, setViewMode] = useState<ViewMode>("szerkesztes");
   const [historyOpen, setHistoryOpen] = useState(false);
 
-  // Élőben olvassuk a store-ból, hogy az automentés által közben felvett
-  // verziók (lásd lib/store.ts updateNote) is megjelenjenek a Történet
+  // Élőben olvassuk a store-ból, hogy a mentéskor (lásd lib/store.ts
+  // updateNote) közben felvett verziók is megjelenjenek a Történet
   // dialógusban, ne csak a komponens megnyitásakori pillanatkép.
   const noteVersions = useAppStore(
     (s) => s.notes.find((n) => n.id === savedNoteId)?.verziok ?? EMPTY_VERSIONS
@@ -124,34 +136,63 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
     return trimmed ? trimmed.split(/\s+/).length : 0;
   }, [tartalom]);
 
-  const isDirty = useRef(false);
-  useEffect(() => {
-    isDirty.current = true;
-  }, [cim, tipus, datum, tartalom, tagInput, attachments]);
-
-  // ---- Automatikus mentés (debounce), csak már létező jegyzetnél ----------
-  useEffect(() => {
-    if (!savedNoteId) return; // új jegyzetnél explicit "Mentés" gomb kell
-    if (!isDirty.current) return;
-    const timeout = setTimeout(() => {
-      updateNote(savedNoteId, { cim, tipus, datum, tartalom, cimkek: tags, mellekletek: attachments });
-      setLastSavedAt(new Date());
-      isDirty.current = false;
-    }, 700);
-    return () => clearTimeout(timeout);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cim, tipus, datum, tartalom, tags, attachments, savedNoteId]);
+  // FONTOS — NINCS automatikus mentés: korábban egy 700ms-es debounce-szal
+  // MINDEN változás (gépelés, melléklet törlése stb.) magától bekerült a
+  // store-ba, mielőtt a felhasználó eldönthette volna, hogy tényleg meg
+  // akarja-e tartani. Ez konkrét adatvesztést okozott: egy véletlenül
+  // törölt kép a "Mégse" gombra kattintva IS törölve maradt, mert az
+  // automentés már lefutott, mire a kattintás megtörtént. Ezért a jegyzet
+  // MOST kizárólag az explicit "Mentés" gombra (handleManualSave) kerül be
+  // a store-ba — a "Mégse"/bezárás gomb pedig (lásd handleRequestClose)
+  // egyszerűen eldobja a component saját (még soha nem mentett) állapotát.
+  // A "piszkos" (el nem mentett módosítás van) állapotot NEM effektussal
+  // követjük — egy useEffect-alapú "csak az első lefutást hagyjuk ki" ref-es
+  // megoldás megbízhatatlan React Strict Mode-ban (dev), mert a Strict Mode
+  // a mountoláskor SZÁNDÉKOSAN kétszer futtatja le az effekteket
+  // (mount→cleanup→mount), egy ref viszont túléli ezt a szimulált
+  // ki-be kapcsolást, így a második lefutás tévesen "valódi" változásnak
+  // hinné az első (valójában csak Strict Mode-os) újrafutást, és rögtön a
+  // megnyitáskor piszkosnak jelölné a még érintetlen jegyzetet. Ehelyett az
+  // "utoljára elmentett állapot" pillanatképét is (reaktív) state-ben
+  // tároljuk — nem ref-ben, mert a ref .current mezőjét renderelés közben
+  // (pl. egy useMemo-n belül) olvasni saját magában is hibás minta lenne
+  // (lásd react-hooks/refs) —, és egy tiszta useMemo-val hasonlítjuk össze a
+  // jelenlegi mezőkkel. Ez nem használ effektust, tehát Strict Mode-tól
+  // függetlenül helyesen viselkedik: a lazy useState-inicializáló ugyan
+  // Strict Mode-ban is kétszer hívódhat meg, de mivel tisztán (side effect
+  // nélkül) számol, a kétszeri hívás ugyanazt az eredményt adja.
+  function snapshotOf(v: {
+    cim: string;
+    tipus: NoteCategory;
+    datum: string;
+    tartalom: string;
+    tagInput: string;
+    attachments: NoteAttachment[];
+  }) {
+    return JSON.stringify(v);
+  }
+  const [savedSnapshot, setSavedSnapshot] = useState(() =>
+    snapshotOf({ cim, tipus, datum, tartalom, tagInput, attachments })
+  );
+  const isDirty = useMemo(
+    () =>
+      snapshotOf({ cim, tipus, datum, tartalom, tagInput, attachments }) !==
+      savedSnapshot,
+    [cim, tipus, datum, tartalom, tagInput, attachments, savedSnapshot]
+  );
 
   function handleManualSave() {
     if (!cim.trim()) return;
     if (savedNoteId) {
       updateNote(savedNoteId, { cim, tipus, datum, tartalom, cimkek: tags, mellekletek: attachments });
       setLastSavedAt(new Date());
+      setSavedSnapshot(snapshotOf({ cim, tipus, datum, tartalom, tagInput, attachments }));
       toast.success("Jegyzet mentve");
     } else {
       const id = addNote({ subjectId, cim, tipus, datum, tartalom, cimkek: tags, mellekletek: attachments });
       setSavedNoteId(id);
       setLastSavedAt(new Date());
+      setSavedSnapshot(snapshotOf({ cim, tipus, datum, tartalom, tagInput, attachments }));
       toast.success("Jegyzet létrehozva");
       onSaved?.({
         id,
@@ -168,6 +209,17 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
     }
   }
 
+  // ---- Bezárás/Mégse: csak akkor kérdez rá, ha tényleg van el nem mentett
+  // módosítás — ha nincs, felesleges lenne megerősítést kérni. ----------
+  const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
+  function handleRequestClose() {
+    if (isDirty) {
+      setDiscardConfirmOpen(true);
+    } else {
+      onClose();
+    }
+  }
+
   // ---- Verziótörténet: korábbi állapot visszaállítása ---------------------
   function handleRestoreVersion(version: NoteVersion) {
     if (!savedNoteId) return;
@@ -177,7 +229,20 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
     // után is a régi tartalmat mutatnák.
     setCim(version.cim);
     setTartalom(version.tartalom);
-    isDirty.current = false;
+    // A setCim/setTartalom aszinkron — a záró változóban (cim, tartalom)
+    // ilyenkor még a RÉGI érték van, ezért a pillanatképet a most
+    // visszaállított version.cim/version.tartalom alapján rögzítjük, nem a
+    // (még el nem évülő) külső cim/tartalom state-ekből.
+    setSavedSnapshot(
+      snapshotOf({
+        cim: version.cim,
+        tipus,
+        datum,
+        tartalom: version.tartalom,
+        tagInput,
+        attachments,
+      })
+    );
     setLastSavedAt(new Date());
     setHistoryOpen(false);
     toast.success(
@@ -338,7 +403,7 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
               <History className="h-4 w-4" />
             </Button>
           )}
-          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Bezárás">
+          <Button variant="ghost" size="icon" onClick={handleRequestClose} aria-label="Bezárás">
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -623,7 +688,17 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
         <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5">
-              {lastSavedAt ? (
+              {isDirty ? (
+                <>
+                  <span
+                    className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500"
+                    aria-hidden="true"
+                  />
+                  <span className="font-medium text-amber-600 dark:text-amber-400">
+                    Nem mentett módosítások
+                  </span>
+                </>
+              ) : lastSavedAt ? (
                 <>
                   <Check className="h-3.5 w-3.5 text-emerald-500" />
                   Mentve{" "}
@@ -647,7 +722,7 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
             )}
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose}>
+            <Button variant="outline" onClick={handleRequestClose}>
               Mégse
             </Button>
             <Button onClick={handleManualSave} disabled={!cim.trim()}>
@@ -656,6 +731,40 @@ export function NoteEditor({ subjectId, note, onClose, onSaved }: NoteEditorProp
           </div>
         </div>
       </div>
+
+      {/*
+        El nem mentett módosítások elvetésének megerősítése — csak akkor
+        jelenik meg, ha tényleg van el nem mentett változás (lásd
+        handleRequestClose). Ez pótolja azt a védelmet, amit korábban
+        (helytelenül) az automentés adott: mostantól egy törölt kép, vagy
+        bármilyen más módosítás, csak a "Mentés" gombbal kerül be a
+        jegyzetbe — a "Mégse" itt tényleg mégse.
+      */}
+      <AlertDialog open={discardConfirmOpen} onOpenChange={setDiscardConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Elveted a nem mentett módosításokat?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Amit ebben a jegyzetben módosítottál (pl. szöveg, cím, vagy egy
+              törölt kép) még nincs elmentve. Ha most bezárod mentés nélkül,
+              ezek a változtatások elvesznek — a jegyzet az utolsó mentett
+              állapotában marad.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Vissza a szerkesztéshez</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90"
+              onClick={() => {
+                setDiscardConfirmOpen(false);
+                onClose();
+              }}
+            >
+              Elvetés mentés nélkül
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {savedNoteId && (
         <NoteVersionHistoryDialog
